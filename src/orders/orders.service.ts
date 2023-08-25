@@ -15,6 +15,7 @@ import { ReportType } from 'src/report-type/report-type.entity'
 import { Payment, PaymentState } from 'src/payments/payment.entity'
 import { FilesService } from 'src/files/files.service'
 import { PaginationOptionsDTO, Pagination } from 'src/pagination/pagination'
+import { FileDTO } from 'src/files/types'
 
 @Injectable()
 export class OrdersService {
@@ -194,12 +195,26 @@ export class OrdersService {
     )
   }
 
-  async orderExists(orderId: string, user: User) {
-    const orderExists = await this.orderRepository.findOne({
+  async orderExistsForUser(orderId: string, user: User) {
+    const orderExistsForUser = await this.orderRepository.findOne({
       where: { id: orderId, user },
       relations: {
         executor: true,
         user: true,
+        files: true,
+      },
+    })
+
+    return orderExistsForUser
+  }
+
+  async orderExists(orderId: string) {
+    const orderExists = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: {
+        executor: true,
+        user: true,
+        files: true,
       },
     })
 

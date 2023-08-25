@@ -53,7 +53,7 @@ export class Order {
   @JoinColumn()
   payment: Payment
 
-  @OneToMany(() => FileEntity, (file) => file.orderId)
+  @OneToMany(() => FileEntity, (file) => file.order)
   files: string[]
 
   @Column()

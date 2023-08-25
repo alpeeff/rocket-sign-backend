@@ -47,7 +47,7 @@ export class OrderExistsGuard implements CanActivate {
       )
     }
 
-    const orderExists = await this.ordersService.orderExists(
+    const orderExists = await this.ordersService.orderExistsForUser(
       findOneOrderParams.orderId,
       user as User,
     )
