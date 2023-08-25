@@ -1,29 +1,44 @@
 import { PipeTransform } from '@nestjs/common'
 import * as sharp from 'sharp'
 import * as heicConvert from 'heic-convert'
+import { FileDTO } from 'src/files/types'
 
 export class SharpPipe
-  implements PipeTransform<Express.Multer.File[], Promise<Buffer[]>>
+  implements PipeTransform<Express.Multer.File[], Promise<FileDTO[]>>
 {
-  async transform(images: Express.Multer.File[]): Promise<Buffer[]> {
-    return await Promise.all(
-      images.map(async (image) => {
-        let preparedImage: ArrayBuffer = image.buffer
+  async transform(files: Express.Multer.File[]): Promise<FileDTO[]> {
+    const images: FileDTO[] = (
+      await Promise.all(
+        files
+          .filter((x) => x.mimetype.startsWith('image'))
+          .map(async (file) => {
+            if (file.mimetype.startsWith('video')) {
+              return file.buffer
+            }
 
-        if (image.mimetype === 'image/heic') {
-          preparedImage = await heicConvert({
-            buffer: image.buffer,
-            format: 'JPEG',
-          })
-        }
+            let preparedFile: Buffer = file.buffer
 
-        return sharp(preparedImage)
-          .resize(800)
-          .webp({
-            effort: 3,
-          })
-          .toBuffer()
-      }),
-    )
+            if (file.mimetype === 'image/heic') {
+              preparedFile = Buffer.from(
+                await heicConvert({
+                  buffer: file.buffer,
+                  format: 'JPEG',
+                }),
+              )
+            }
+
+            return sharp(preparedFile)
+              .resize(800)
+              .webp({ effort: 3, quality: 80 })
+              .toBuffer()
+          }),
+      )
+    ).map((x) => ({ buffer: x, contentType: 'image/webp' }))
+
+    const videos: FileDTO[] = files
+      .filter((x) => x.mimetype.startsWith('video'))
+      .map((x) => ({ buffer: x.buffer, contentType: 'video/mp4' }))
+
+    return [...videos, ...images]
   }
 }
