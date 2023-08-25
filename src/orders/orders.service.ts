@@ -186,10 +186,10 @@ export class OrdersService {
     }
   }
 
-  async attachFiles(orderId: string, buffers: Buffer[]) {
+  async attachFiles(order: Order, files: FileDTO[]) {
     await Promise.all(
-      buffers.map((buffer, i) =>
-        this.filesService.upload(`${i}`, orderId, buffer),
+      files.map(({ buffer, contentType }, i) =>
+        this.filesService.upload(order, `${i}`, buffer, contentType),
       ),
     )
   }
