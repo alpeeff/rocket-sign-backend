@@ -6,6 +6,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3'
 import { ConfigService } from 'src/config/config.service'
+import { FilesContentType, FileDTO } from 'src/files/types'
 
 @Injectable()
 export class S3Service {
@@ -24,12 +25,13 @@ export class S3Service {
     this.bucketName = this.configService.get('AWS_S3_ORDERS_BUCKET')
   }
 
-  async upload(fileName: string, file: Buffer) {
+  async upload(fileName: string, file: Buffer, contentType: FilesContentType) {
     return await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.bucketName,
         Key: fileName,
         Body: file,
+        ContentType: contentType,
       }),
     )
   }
@@ -43,9 +45,15 @@ export class S3Service {
     )
   }
 
-  async getBuffer(key: string) {
-    const { Body } = await this.get(key)
-    return await Body.transformToByteArray()
+  async getFile(key: string): Promise<FileDTO> {
+    const { Body, ContentType } = await this.get(key)
+
+    const byteArray = await Body.transformToByteArray()
+
+    return {
+      buffer: Buffer.from(byteArray),
+      contentType: ContentType as FilesContentType,
+    }
   }
 
   async delete(key: string | string[]) {

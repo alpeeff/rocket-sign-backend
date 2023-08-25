@@ -15,8 +15,8 @@ export class FileEntity {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
-  @ManyToOne(() => Order, (order) => order.id)
-  orderId: string
+  @ManyToOne(() => Order)
+  order: Order
 
   @Column()
   externalKey: string

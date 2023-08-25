@@ -1,8 +1,11 @@
-import { BadRequestException, Injectable, StreamableFile } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FileEntity } from './file.entity'
 import { Repository } from 'typeorm'
 import { S3Service } from 'src/s3/s3.service'
+import { FilesContentType, FileDTO } from './types'
+import { Order } from 'src/orders/order.entity'
+import { GetFileDTO } from './dtos'
 
 @Injectable()
 export class FilesService {
@@ -12,26 +15,33 @@ export class FilesService {
     private s3Service: S3Service,
   ) {}
 
-  async upload(fileName: string, orderId: string, buffer: Buffer) {
-    const key = `${orderId}_${fileName}`
+  async upload(
+    order: Order,
+    fileName: string,
+    buffer: Buffer,
+    contentType: FilesContentType,
+  ) {
+    const key = `${order.id}_${fileName}`
 
     const fileEntity = new FileEntity()
-    fileEntity.orderId = orderId
+    fileEntity.order = order
     fileEntity.externalKey = key
 
-    await this.s3Service.upload(fileEntity.externalKey, buffer)
     await this.filesRepository.save(fileEntity)
+    await this.s3Service.upload(fileEntity.externalKey, buffer, contentType)
   }
 
-  async get(id: string) {
-    const fileExists = await this.filesRepository.findOne({ where: { id } })
+  async get(id: string): Promise<FileDTO> {
+    const fileExists = await this.filesRepository.findOneBy({ id })
+    return await this.s3Service.getFile(fileExists.externalKey)
+  }
 
-    if (!fileExists) {
-      throw new BadRequestException()
-    }
+  async fileExists(getFileDto: GetFileDTO) {
+    const fileExists = await this.filesRepository.findOne({
+      where: { id: getFileDto.fileId },
+      relations: { order: true },
+    })
 
-    const s3FileBuffer = await this.s3Service.getBuffer(fileExists.externalKey)
-
-    return new StreamableFile(s3FileBuffer)
+    return fileExists
   }
 }

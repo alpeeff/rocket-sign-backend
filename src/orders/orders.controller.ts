@@ -8,6 +8,7 @@ import {
   Post,
   Query,
   Req,
+  StreamableFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -24,10 +25,18 @@ import { AuthGuard } from 'src/auth/guards/auth.guard'
 import { CheckOrderPolicies, OrderExistsGuard } from './orders.guard'
 import { OrderParam } from './orders.decorator'
 import { PaginationOptionsDTO } from 'src/pagination/pagination'
+import { FilesGuard } from 'src/files/files.guard'
+import { FileParam } from 'src/files/files.decorator'
+import { FileEntity } from 'src/files/file.entity'
+import { FilesService } from 'src/files/files.service'
+import { FileDTO } from 'src/files/types'
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private ordersService: OrdersService) {}
+  constructor(
+    private ordersService: OrdersService,
+    private filesService: FilesService,
+  ) {}
 
   @Get()
   @AuthGuard((ability) => ability.can(Action.Read, Order))
@@ -94,14 +103,22 @@ export class OrdersController {
         validators: [
           new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
           new FileTypeValidator({
-            fileType: /(jpg|jpeg|png|mkv|heic)$/,
+            fileType: /(jpg|jpeg|png|heic|mp4)$/,
           }),
         ],
       }),
       new SharpPipe(),
     )
-    files: Buffer[],
+    files: FileDTO[],
   ) {
-    await this.ordersService.attachFiles(order.id, files)
+    await this.ordersService.attachFiles(order, files)
+  }
+
+  @Get('file/:fileId')
+  @UseGuards(FilesGuard)
+  @AuthGuard()
+  async getOrderFile(@FileParam() file: FileEntity) {
+    const { buffer, contentType } = await this.filesService.get(file.id)
+    return new StreamableFile(buffer, { type: contentType })
   }
 }
