@@ -6,6 +6,7 @@ import {
   createMongoAbility,
 } from '@casl/ability'
 import { Injectable } from '@nestjs/common'
+import { FileEntity } from 'src/files/file.entity'
 import { Order, OrderState } from 'src/orders/order.entity'
 import { Payment } from 'src/payments/payment.entity'
 import { User, UserRole } from 'src/users/user.entity'
@@ -28,7 +29,9 @@ type FlatOrder = Order & {
   'user.id': Order['user']['id']
 }
 
-type Subjects = InferSubjects<typeof Order | typeof Payment> | 'all'
+type Subjects =
+  | InferSubjects<typeof Order | typeof Payment | typeof FileEntity>
+  | 'all'
 export type AppAbility = MongoAbility<[Action, Subjects]>
 
 @Injectable()
@@ -71,6 +74,8 @@ export class CaslAbilityFactory {
         })
         break
     }
+
+    can(Action.Read, Order, { published: true })
 
     return build({
       detectSubjectType: (object) =>
