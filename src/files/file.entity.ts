@@ -1,4 +1,4 @@
-import { Order } from 'src/orders/order.entity'
+import { User } from 'src/users/user.entity'
 import {
   Column,
   CreateDateColumn,
@@ -15,8 +15,8 @@ export class FileEntity {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
-  @ManyToOne(() => Order)
-  order: Order
+  @ManyToOne(() => User)
+  user: User
 
   @Column()
   externalKey: string

@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FileEntity } from './file.entity'
 import { Repository } from 'typeorm'
 import { S3Service } from 'src/s3/s3.service'
 import { FilesContentType, FileDTO } from './types'
-import { Order } from 'src/orders/order.entity'
 import { GetFileDTO } from './dtos'
+import { User } from 'src/users/user.entity'
 
 @Injectable()
 export class FilesService {
@@ -16,30 +16,43 @@ export class FilesService {
   ) {}
 
   async upload(
-    order: Order,
+    user: User,
     fileName: string,
     buffer: Buffer,
     contentType: FilesContentType,
   ) {
-    const key = `${order.id}_${fileName}`
+    const key = `${user.id}_${fileName}`
 
     const fileEntity = new FileEntity()
-    fileEntity.order = order
+    fileEntity.user = user
     fileEntity.externalKey = key
 
-    await this.filesRepository.save(fileEntity)
+    const { id } = await this.filesRepository.save(fileEntity)
     await this.s3Service.upload(fileEntity.externalKey, buffer, contentType)
+
+    return id
   }
 
-  async get(id: string): Promise<FileDTO> {
-    const fileExists = await this.filesRepository.findOneBy({ id })
+  async get(fileId: string): Promise<FileDTO> {
+    const fileExists = await this.fileExists({ fileId })
     return await this.s3Service.getFile(fileExists.externalKey)
+  }
+
+  async delete(fileId: string) {
+    const fileExists = await this.fileExists({ fileId })
+
+    if (!fileExists) {
+      throw new NotFoundException(`File doesn't exist`)
+    }
+
+    await this.s3Service.delete(fileExists.externalKey)
+    await this.filesRepository.remove(fileExists)
   }
 
   async fileExists(getFileDto: GetFileDTO) {
     const fileExists = await this.filesRepository.findOne({
       where: { id: getFileDto.fileId },
-      relations: { order: true },
+      relations: { user: true },
     })
 
     return fileExists
