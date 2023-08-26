@@ -27,4 +27,7 @@ export class User {
     unique: true,
   })
   email: string
+
+  @Column({ nullable: true })
+  avatarId: string | null
 }
