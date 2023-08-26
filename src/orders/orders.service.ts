@@ -16,6 +16,7 @@ import { Payment, PaymentState } from 'src/payments/payment.entity'
 import { FilesService } from 'src/files/files.service'
 import { PaginationOptionsDTO, Pagination } from 'src/pagination/pagination'
 import { FileDTO } from 'src/files/types'
+import { FileEntity } from 'src/files/file.entity'
 
 @Injectable()
 export class OrdersService {
@@ -187,11 +188,30 @@ export class OrdersService {
     }
   }
 
-  async attachFiles(order: Order, files: FileDTO[]) {
-    await Promise.all(
+  async attachFiles(user: User, order: Order, files: FileDTO[]) {
+    const ids = await Promise.all(
       files.map(({ buffer, contentType }, i) =>
-        this.filesService.upload(order, `${i}`, buffer, contentType),
+        this.filesService.upload(
+          user,
+          `${order.id}_${i + order.files.length}`,
+          buffer,
+          contentType,
+        ),
       ),
+    )
+
+    await this.orderRepository.update(
+      { id: order.id },
+      { files: order.files.concat(ids) },
+    )
+  }
+
+  async deleteFile(order: Order, file: FileEntity) {
+    await this.filesService.delete(file.id)
+
+    await this.orderRepository.update(
+      { id: order.id },
+      { files: order.files.filter((fileId) => fileId !== file.id) },
     )
   }
 
@@ -201,7 +221,6 @@ export class OrdersService {
       relations: {
         executor: true,
         user: true,
-        files: true,
       },
     })
 

@@ -1,15 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
-  FileTypeValidator,
+  Delete,
   Get,
-  MaxFileSizeValidator,
-  ParseFilePipe,
   Post,
   Query,
   Req,
-  StreamableFile,
-  UploadedFiles,
   UseGuards,
   UseInterceptors,
   ValidationPipe,
@@ -20,16 +17,16 @@ import { Order } from './order.entity'
 import { Action } from 'src/casl/casl-ability.factory'
 import { CreateNewOrderDTO, GetOrdersDTO } from './dtos'
 import { FilesInterceptor } from '@nestjs/platform-express'
-import { SharpPipe } from 'src/helpers/pipes/sharp.pipe'
 import { AuthGuard } from 'src/auth/guards/auth.guard'
 import { CheckOrderPolicies, OrderExistsGuard } from './orders.guard'
-import { OrderParam } from './orders.decorator'
+import { OrderFileParam, OrderParam } from './orders.decorator'
 import { PaginationOptionsDTO } from 'src/pagination/pagination'
 import { FilesGuard } from 'src/files/files.guard'
 import { FileParam } from 'src/files/files.decorator'
 import { FileEntity } from 'src/files/file.entity'
 import { FilesService } from 'src/files/files.service'
 import { FileDTO } from 'src/files/types'
+import { MAX_ORDER_FILES_LENGTH } from 'src/files/validations'
 
 @Controller('orders')
 export class OrdersController {
@@ -91,34 +88,33 @@ export class OrdersController {
     await this.ordersService.approveOrderCompleteness(order.id, req.user)
   }
 
-  @Post('attach/:orderId')
+  @Post('file/:orderId')
   @UseInterceptors(FilesInterceptor('attachments'))
   @UseGuards(OrderExistsGuard)
   @CheckOrderPolicies(Action.AttachFiles)
   @AuthGuard()
   async uploadAttachments(
     @OrderParam() order: Order,
-    @UploadedFiles(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
-          new FileTypeValidator({
-            fileType: /(jpg|jpeg|png|heic|mp4)$/,
-          }),
-        ],
-      }),
-      new SharpPipe(),
-    )
-    files: FileDTO[],
+    @OrderFileParam() files: FileDTO[],
+    @Req() req: Request,
   ) {
-    await this.ordersService.attachFiles(order, files)
+    if (order.files.length >= MAX_ORDER_FILES_LENGTH) {
+      throw new BadRequestException(
+        `You cannot upload more than ${MAX_ORDER_FILES_LENGTH} files`,
+      )
+    }
+
+    await this.ordersService.attachFiles(req.user, order, files)
   }
 
-  @Get('file/:fileId')
+  @Delete('file/:orderId/:fileId')
   @UseGuards(FilesGuard)
+  @UseGuards(OrderExistsGuard)
   @AuthGuard()
-  async getOrderFile(@FileParam() file: FileEntity) {
-    const { buffer, contentType } = await this.filesService.get(file.id)
-    return new StreamableFile(buffer, { type: contentType })
+  async getOrderFile(
+    @FileParam() file: FileEntity,
+    @OrderParam() order: Order,
+  ) {
+    await this.ordersService.deleteFile(order, file)
   }
 }

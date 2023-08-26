@@ -29,9 +29,14 @@ type FlatOrder = Order & {
   'user.id': Order['user']['id']
 }
 
+type FlatFile = FileEntity & {
+  'user.id': FileEntity['user']['id']
+}
+
 type Subjects =
   | InferSubjects<typeof Order | typeof Payment | typeof FileEntity>
   | 'all'
+
 export type AppAbility = MongoAbility<[Action, Subjects]>
 
 @Injectable()
@@ -76,6 +81,7 @@ export class CaslAbilityFactory {
     }
 
     can(Action.Read, Order, { published: true })
+    can<FlatFile>(Action.Read, FileEntity, { 'user.id': user.id })
 
     return build({
       detectSubjectType: (object) =>

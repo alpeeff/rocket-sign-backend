@@ -3,7 +3,7 @@ import * as sharp from 'sharp'
 import * as heicConvert from 'heic-convert'
 import { FileDTO } from 'src/files/types'
 
-export class SharpPipe
+export class OptimizeFilesPipe
   implements PipeTransform<Express.Multer.File[], Promise<FileDTO[]>>
 {
   async transform(files: Express.Multer.File[]): Promise<FileDTO[]> {
@@ -16,21 +16,7 @@ export class SharpPipe
               return file.buffer
             }
 
-            let preparedFile: Buffer = file.buffer
-
-            if (file.mimetype === 'image/heic') {
-              preparedFile = Buffer.from(
-                await heicConvert({
-                  buffer: file.buffer,
-                  format: 'JPEG',
-                }),
-              )
-            }
-
-            return sharp(preparedFile)
-              .resize(800)
-              .webp({ effort: 3, quality: 80 })
-              .toBuffer()
+            return optimizeImage(file)
           }),
       )
     ).map((x) => ({ buffer: x, contentType: 'image/webp' }))
@@ -41,4 +27,33 @@ export class SharpPipe
 
     return [...videos, ...images]
   }
+}
+
+export class OptimizeImagePipe
+  implements PipeTransform<Express.Multer.File, Promise<FileDTO>>
+{
+  async transform(file: Express.Multer.File): Promise<FileDTO> {
+    return {
+      buffer: await optimizeImage(file),
+      contentType: 'image/webp',
+    }
+  }
+}
+
+async function optimizeImage(file: Express.Multer.File) {
+  let preparedFile: Buffer = file.buffer
+
+  if (file.mimetype === 'image/heic') {
+    preparedFile = Buffer.from(
+      await heicConvert({
+        buffer: file.buffer,
+        format: 'JPEG',
+      }),
+    )
+  }
+
+  return sharp(preparedFile)
+    .resize(800)
+    .webp({ effort: 3, quality: 80 })
+    .toBuffer()
 }

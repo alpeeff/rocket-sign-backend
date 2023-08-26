@@ -1,5 +1,4 @@
 import { DeliveryType } from 'src/delivery-type/delivery-type.entity'
-import { FileEntity } from 'src/files/file.entity'
 import { Payment } from 'src/payments/payment.entity'
 import { ReportType } from 'src/report-type/report-type.entity'
 import { User } from 'src/users/user.entity'
@@ -8,7 +7,6 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
@@ -53,9 +51,9 @@ export class Order {
   @JoinColumn()
   payment: Payment
 
-  @OneToMany(() => FileEntity, (file) => file.order)
+  @Column('text', { array: true, default: [] })
   files: string[]
 
-  @Column()
+  @Column({ default: false })
   published: boolean
 }
