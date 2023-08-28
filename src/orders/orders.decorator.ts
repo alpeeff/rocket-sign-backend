@@ -16,7 +16,7 @@ export const OrderParam = createParamDecorator(
   },
 )
 
-export const OrderFileParam = () => {
+export const OrderFilesParam = () => {
   return UploadedFiles(
     new ParseFilePipe({
       validators: [

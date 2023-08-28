@@ -6,6 +6,7 @@ import { generateSignature } from './utils'
 import {
   FondyCreateCaptureDTO,
   FondyCreateCheckoutDTO,
+  FondyCreateCheckoutResultDTO,
   FondyCreateReverseDTO,
 } from './dtos'
 
@@ -29,7 +30,7 @@ export class FondyService {
     lang,
     desc,
     email,
-  }: FondyCreateCheckoutDTO) {
+  }: FondyCreateCheckoutDTO): Promise<FondyCreateCheckoutResultDTO> {
     const orderId = this.fondy.getOrderId()
     const signature = generateSignature(
       this.configService.get('FONDY_SECRET_KEY'),
@@ -54,7 +55,7 @@ export class FondyService {
       })
 
       return {
-        ...checkout,
+        checkout,
         orderId,
       }
     } catch (e) {

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { Order, OrderState } from './order.entity'
+import { IOrder, Order, OrderState } from './order.entity'
 import { DataSource, FindOptionsWhere, Repository } from 'typeorm'
 import { DeliveryType } from 'src/delivery-type/delivery-type.entity'
 import { IUser, UserRole } from 'src/users/user.entity'
@@ -18,6 +18,7 @@ import { FilesService } from 'src/files/files.service'
 import { PaginationOptionsDTO, Pagination } from 'src/pagination/pagination'
 import { FileDTO } from 'src/files/types'
 import { FileEntity } from 'src/files/file.entity'
+import { FondyCreateCheckoutResultDTO } from 'src/payments/fondy/dtos'
 
 @Injectable()
 export class OrdersService {
@@ -32,7 +33,10 @@ export class OrdersService {
     private filesService: FilesService,
   ) {}
 
-  async createNewOrder(newOrder: CreateNewOrderDTO, creator: IUser) {
+  async createNewOrder(
+    newOrder: CreateNewOrderDTO,
+    creator: IUser,
+  ): Promise<FondyCreateCheckoutResultDTO> {
     const [deliveryType, reportType] = await Promise.all([
       this.deliveryTypeRepository.findOneBy({
         id: newOrder.deliveryType,
@@ -49,7 +53,7 @@ export class OrdersService {
 
     const amount = reportType.price + deliveryType.price
 
-    const payment = await this.paymentsConnector.create({
+    const { payment, checkout } = await this.paymentsConnector.create({
       amount: amount,
       currency: FondyCurrency.UAH,
       desc: deliveryType.name,
@@ -66,7 +70,8 @@ export class OrdersService {
     })
 
     try {
-      return await this.orderRepository.save(order)
+      await this.orderRepository.save(order)
+      return checkout
     } catch (e) {
       throw new InternalServerErrorException()
     }
@@ -92,7 +97,7 @@ export class OrdersService {
         skip: getOrdersDto.page * getOrdersDto.limit,
       })
 
-      return new Pagination<Order>({
+      return new Pagination<IOrder>({
         results,
         total: count,
       })
@@ -101,7 +106,7 @@ export class OrdersService {
     }
   }
 
-  async getFeed(options: PaginationOptionsDTO): Promise<Pagination<Order>> {
+  async getFeed(options: PaginationOptionsDTO): Promise<Pagination<IOrder>> {
     try {
       const [results, count] = await this.orderRepository.findAndCount({
         where: { state: OrderState.Done, published: true },
@@ -109,7 +114,7 @@ export class OrdersService {
         skip: options.page * options.limit,
       })
 
-      return new Pagination<Order>({
+      return new Pagination<IOrder>({
         results,
         total: count,
       })
@@ -226,7 +231,7 @@ export class OrdersService {
     )
   }
 
-  async deleteFile(order: Order, file: FileEntity) {
+  async deleteAttachment(order: Order, file: FileEntity) {
     await this.filesService.delete(file.id)
 
     await this.orderRepository.update(

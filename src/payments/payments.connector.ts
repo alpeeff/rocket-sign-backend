@@ -2,7 +2,10 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import { PaymentsService } from './payments.service'
 import { FondyService } from './fondy/fondy.service'
 import { Payment, PaymentState } from './payment.entity'
-import { CreatePaymentsConnectorPaymentDTO } from './dtos'
+import {
+  CreatePaymentResultDTO,
+  CreatePaymentsConnectorPaymentDTO,
+} from './dtos'
 import { FondyLang } from 'src/types/fondy/types'
 
 @Injectable()
@@ -17,10 +20,10 @@ export class PaymentsConnector {
     desc,
     email,
     ...createPaymentDto
-  }: CreatePaymentsConnectorPaymentDTO): Promise<Payment> {
+  }: CreatePaymentsConnectorPaymentDTO): Promise<CreatePaymentResultDTO> {
     const amount = createPaymentDto.amount * 100
 
-    const fondyCheckout = await this.fondyService.createCheckout({
+    const checkout = await this.fondyService.createCheckout({
       amount,
       currency,
       desc,
@@ -28,13 +31,16 @@ export class PaymentsConnector {
       lang: FondyLang.UA,
     })
 
-    const localPayment = await this.paymentsService.create({
+    const payment = await this.paymentsService.create({
       amount,
       currency,
-      externalId: fondyCheckout.orderId,
+      externalId: checkout.orderId,
     })
 
-    return localPayment
+    return {
+      checkout,
+      payment,
+    }
   }
 
   async capture(payment: Payment) {
