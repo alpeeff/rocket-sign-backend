@@ -7,11 +7,13 @@ import { User } from './users/user.entity'
 import { ConfigService } from './config/config.service'
 import { Order } from './orders/order.entity'
 import { DeliveryType } from './delivery-type/delivery-type.entity'
-import { PaymentsModule } from './payments/payments.module'
 import { ReportType } from './report-type/report-type.entity'
 import { Payment } from './payments/payment.entity'
 import { UsersModule } from './users/users.module'
 import { FileEntity } from './files/file.entity'
+import { ChatMessage } from './chat/chat-message.entity'
+import { ChatModule } from './chat/chat.module'
+import { OrdersModule } from './orders/orders.module'
 
 @Module({
   imports: [
@@ -26,13 +28,22 @@ import { FileEntity } from './files/file.entity'
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        entities: [User, Order, Payment, DeliveryType, ReportType, FileEntity],
+        entities: [
+          User,
+          Order,
+          Payment,
+          DeliveryType,
+          ReportType,
+          FileEntity,
+          ChatMessage,
+        ],
         synchronize: true,
       }),
     }),
     AuthModule,
-    PaymentsModule,
     UsersModule,
+    ChatModule,
+    OrdersModule,
     ConfigModule,
   ],
 })

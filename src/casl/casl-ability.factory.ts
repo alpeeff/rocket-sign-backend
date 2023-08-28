@@ -6,10 +6,11 @@ import {
   createMongoAbility,
 } from '@casl/ability'
 import { Injectable } from '@nestjs/common'
+import { ChatMessage } from 'src/chat/chat-message.entity'
 import { FileEntity } from 'src/files/file.entity'
 import { Order, OrderState } from 'src/orders/order.entity'
 import { Payment } from 'src/payments/payment.entity'
-import { User, UserRole } from 'src/users/user.entity'
+import { IUser, UserRole } from 'src/users/user.entity'
 
 export enum Action {
   Manage = 'manage',
@@ -22,6 +23,7 @@ export enum Action {
   ApproveFromCreator = 'approve-from-creator',
   ApproveFromExecutor = 'approve-from-executor',
   AttachFiles = 'attach-files',
+  SendReadMessage = 'send-message',
 }
 
 type FlatOrder = Order & {
@@ -34,14 +36,16 @@ type FlatFile = FileEntity & {
 }
 
 type Subjects =
-  | InferSubjects<typeof Order | typeof Payment | typeof FileEntity>
+  | InferSubjects<
+      typeof Order | typeof Payment | typeof FileEntity | typeof ChatMessage
+    >
   | 'all'
 
 export type AppAbility = MongoAbility<[Action, Subjects]>
 
 @Injectable()
 export class CaslAbilityFactory {
-  createForUser(user: User) {
+  createForUser(user: IUser) {
     const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility)
 
     switch (user.role) {
@@ -82,6 +86,16 @@ export class CaslAbilityFactory {
 
     can(Action.Read, Order, { published: true })
     can<FlatFile>(Action.Read, FileEntity, { 'user.id': user.id })
+
+    can<FlatOrder>(Action.SendReadMessage, Order, {
+      'user.id': user.id,
+      state: OrderState.WaitingForApproveFromCreator,
+    })
+
+    can<FlatOrder>(Action.SendReadMessage, Order, {
+      'executor.id': user.id,
+      state: OrderState.WaitingForApproveFromCreator,
+    })
 
     return build({
       detectSubjectType: (object) =>
