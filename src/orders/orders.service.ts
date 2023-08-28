@@ -2,12 +2,13 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { Order, OrderState } from './order.entity'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm'
 import { DeliveryType } from 'src/delivery-type/delivery-type.entity'
-import { User } from 'src/users/user.entity'
+import { IUser, UserRole } from 'src/users/user.entity'
 import { CreateNewOrderDTO, GetOrdersDTO } from './dtos'
 import { PaymentsConnector } from 'src/payments/payments.connector'
 import { FondyCurrency } from 'src/types/fondy/types'
@@ -31,7 +32,7 @@ export class OrdersService {
     private filesService: FilesService,
   ) {}
 
-  async createNewOrder(newOrder: CreateNewOrderDTO, creator: User) {
+  async createNewOrder(newOrder: CreateNewOrderDTO, creator: IUser) {
     const [deliveryType, reportType] = await Promise.all([
       this.deliveryTypeRepository.findOneBy({
         id: newOrder.deliveryType,
@@ -71,23 +72,22 @@ export class OrdersService {
     }
   }
 
-  async getOrdersByUserId(userId: User['id']) {
+  async get(getOrdersDto: GetOrdersDTO, user: IUser) {
     try {
-      return await this.orderRepository.find({
-        where: { user: { id: userId } },
-        relations: {
-          user: true,
-        },
-      })
-    } catch (e) {
-      throw new InternalServerErrorException()
-    }
-  }
+      const where: FindOptionsWhere<Order> =
+        user.role === UserRole.Soldier
+          ? {
+              executor:
+                getOrdersDto.state === OrderState.WaitingForExecutor
+                  ? undefined
+                  : user,
+            }
+          : { user }
 
-  async get(getOrdersDto: GetOrdersDTO, user: User) {
-    try {
+      where.state = getOrdersDto.state
+
       const [results, count] = await this.orderRepository.findAndCount({
-        where: { state: getOrdersDto.state, user },
+        where,
         take: getOrdersDto.limit,
         skip: getOrdersDto.page * getOrdersDto.limit,
       })
@@ -118,7 +118,7 @@ export class OrdersService {
     }
   }
 
-  async takeInProgress(orderId: string, whoAccepts: User) {
+  async takeInProgress(orderId: string, whoAccepts: IUser) {
     const orderExists = await this.orderRepository.findOneBy({
       id: orderId,
     })
@@ -137,7 +137,7 @@ export class OrdersService {
     }
   }
 
-  async approveOrderCompleteness(orderId: string, user: User) {
+  async approveOrder(orderId: string, user: IUser) {
     const orderExists = await this.orderRepository.findOne({
       where: { id: orderId, user },
       relations: { payment: true },
@@ -163,7 +163,27 @@ export class OrdersService {
     }
   }
 
-  async getOrdersPaymentSumByUser(user: User) {
+  async approveSoldierOrder(orderId: string, user: IUser) {
+    const orderExists = await this.orderRepository.findOneBy({
+      id: orderId,
+      executor: user,
+    })
+
+    if (!orderExists) {
+      throw new NotFoundException(`Order doesn't exist`)
+    }
+
+    if (!orderExists.files.length) {
+      throw new BadRequestException('Attach files to approve completeness')
+    }
+
+    await this.orderRepository.update(
+      { id: orderExists.id },
+      { state: OrderState.WaitingForApproveFromCreator },
+    )
+  }
+
+  async getOrdersPaymentSumByUser(user: IUser) {
     const ordersQueryBuilder = this.dataSource.createQueryBuilder(
       Order,
       'order',
@@ -188,7 +208,7 @@ export class OrdersService {
     }
   }
 
-  async attachFiles(user: User, order: Order, files: FileDTO[]) {
+  async attachFiles(user: IUser, order: Order, files: FileDTO[]) {
     const ids = await Promise.all(
       files.map(({ buffer, contentType }, i) =>
         this.filesService.upload(
@@ -215,7 +235,7 @@ export class OrdersService {
     )
   }
 
-  async orderExistsForUser(orderId: string, user: User) {
+  async orderExistsForUser(orderId: string, user: IUser) {
     const orderExistsForUser = await this.orderRepository.findOne({
       where: { id: orderId, user },
       relations: {

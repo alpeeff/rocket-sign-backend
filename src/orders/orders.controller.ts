@@ -24,16 +24,12 @@ import { PaginationOptionsDTO } from 'src/pagination/pagination'
 import { FilesGuard } from 'src/files/files.guard'
 import { FileParam } from 'src/files/files.decorator'
 import { FileEntity } from 'src/files/file.entity'
-import { FilesService } from 'src/files/files.service'
 import { FileDTO } from 'src/files/types'
 import { MAX_ORDER_FILES_LENGTH } from 'src/files/validations'
 
 @Controller('orders')
 export class OrdersController {
-  constructor(
-    private ordersService: OrdersService,
-    private filesService: FilesService,
-  ) {}
+  constructor(private ordersService: OrdersService) {}
 
   @Get()
   @AuthGuard((ability) => ability.can(Action.Read, Order))
@@ -82,10 +78,18 @@ export class OrdersController {
 
   @Post('approve/:orderId')
   @UseGuards(OrderExistsGuard)
+  @CheckOrderPolicies(Action.ApproveFromCreator)
+  @AuthGuard()
+  async approve(@OrderParam() order: Order, @Req() req: Request) {
+    await this.ordersService.approveOrder(order.id, req.user)
+  }
+
+  @Post('approve-soldier/:orderId')
+  @UseGuards(OrderExistsGuard)
   @CheckOrderPolicies(Action.ApproveFromExecutor)
   @AuthGuard()
-  async approveCompleteness(@OrderParam() order: Order, @Req() req: Request) {
-    await this.ordersService.approveOrderCompleteness(order.id, req.user)
+  async approveSoldier(@OrderParam() order: Order, @Req() req: Request) {
+    await this.ordersService.approveSoldierOrder(order.id, req.user)
   }
 
   @Post('file/:orderId')
