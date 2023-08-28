@@ -64,4 +64,23 @@ export class PaymentsConnector {
       throw new InternalServerErrorException()
     }
   }
+
+  async reverse(payment: Payment) {
+    try {
+      const capture = await this.fondyService.createReverse({
+        amount: payment.usdAmount,
+        currency: payment.currency,
+        orderId: payment.externalId,
+      })
+
+      if (
+        capture.response_status === 'success' &&
+        capture.reverse_status === 'approved'
+      ) {
+        await this.paymentsService.updateState(payment, PaymentState.Reversed)
+      }
+    } catch (e) {
+      throw new InternalServerErrorException()
+    }
+  }
 }

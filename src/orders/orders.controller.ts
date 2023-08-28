@@ -105,7 +105,7 @@ export class OrdersController {
   @CheckOrderPolicies(Action.TakeInProgress)
   @AuthGuard()
   async takeInProgress(@OrderParam() order: IOrder, @Req() req: Request) {
-    return await this.ordersService.takeInProgress(order.id, req.user)
+    return await this.ordersService.takeInProgress(order, req.user)
   }
 
   /**
@@ -118,8 +118,8 @@ export class OrdersController {
   @UseGuards(OrderExistsGuard)
   @CheckOrderPolicies(Action.ApproveFromCreator)
   @AuthGuard()
-  async approve(@OrderParam() order: Order, @Req() req: Request) {
-    await this.ordersService.approveOrder(order.id, req.user)
+  async approve(@OrderParam() order: Order) {
+    await this.ordersService.approveOrder(order)
   }
 
   /**
@@ -133,8 +133,8 @@ export class OrdersController {
   @UseGuards(OrderExistsGuard)
   @CheckOrderPolicies(Action.ApproveFromExecutor)
   @AuthGuard()
-  async approveSoldier(@OrderParam() order: IOrder, @Req() req: Request) {
-    await this.ordersService.approveSoldierOrder(order.id, req.user)
+  async approveSoldier(@OrderParam() order: IOrder) {
+    await this.ordersService.approveSoldierOrder(order)
   }
 
   /**
@@ -173,5 +173,20 @@ export class OrdersController {
     @OrderParam() order: Order,
   ) {
     await this.ordersService.deleteAttachment(order, file)
+  }
+
+  /**
+   * @description Cancels order execution
+   *
+   * User with {UserRole.Soldier} can cancel order execution when order state is
+   * in {OrderState.InProgress, OrderState.WaitingForApproveFromCreator}
+   *
+   */
+  @Post('cancel/:orderId')
+  @UseGuards(OrderExistsGuard)
+  @CheckOrderPolicies(Action.CancelExecution)
+  @AuthGuard()
+  async cancelOrder(@OrderParam() order: Order) {
+    await this.ordersService.cancelOrder(order)
   }
 }

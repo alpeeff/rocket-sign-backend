@@ -24,6 +24,7 @@ export enum Action {
   ApproveFromExecutor = 'approve-from-executor',
   AttachFiles = 'attach-files',
   SendReadMessage = 'send-message',
+  CancelExecution = 'cancel-execution',
 }
 
 type FlatOrder = Order & {
@@ -80,6 +81,15 @@ export class CaslAbilityFactory {
         can<FlatOrder>(Action.ApproveFromExecutor, Order, {
           'executor.id': user.id,
           state: OrderState.InProgress,
+        })
+        can<FlatOrder>(Action.CancelExecution, Order, {
+          'executor.id': user.id,
+          state: {
+            $in: [
+              OrderState.InProgress,
+              OrderState.WaitingForApproveFromCreator,
+            ],
+          },
         })
         break
     }

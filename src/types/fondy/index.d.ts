@@ -137,7 +137,7 @@ declare module 'cloudipsp-node-js-sdk' {
     payment_id: number
   }
 
-  export interface FondyCheckoutIntermediateFailureResponseDTO {
+  export interface FondyError {
     response_status: 'failure'
     error_code: string
     error_message: number
@@ -145,7 +145,7 @@ declare module 'cloudipsp-node-js-sdk' {
 
   export type FondyCheckoutIntermediateResponseDTO =
     | FondyCheckoutIntermediateSuccessResponseDTO
-    | FondyCheckoutIntermediateFailureResponseDTO
+    | FondyError
 
   export interface FondyCaptureDTO {
     order_id: string
@@ -163,8 +163,7 @@ declare module 'cloudipsp-node-js-sdk' {
     response_status: 'success'
   }
 
-  export type FondyCaptureResponseFailureDTO =
-    FondyCheckoutIntermediateFailureResponseDTO
+  export type FondyCaptureResponseFailureDTO = FondyError
 
   export type FondyCaptureResponseDTO =
     | FondyCaptureResponseSuccessDTO
@@ -186,11 +185,10 @@ declare module 'cloudipsp-node-js-sdk' {
     response_status: 'success'
   }
 
-  export type FondyReverseResponseFailureDTO =
-    FondyCheckoutIntermediateFailureResponseDTO
+  export type FondyReverseResponseFailureDTO = FondyError
 
   export type FondyReverseResponseDTO =
-    | FondyCaptureResponseSuccessDTO
+    | FondyReverseResponseSuccessDTO
     | FondyCaptureResponseFailureDTO
 
   export interface FondyStatusDTO {
@@ -239,8 +237,7 @@ declare module 'cloudipsp-node-js-sdk' {
     response_signature_string: string
   }
 
-  export type FondyStatusResponseFailureDTO =
-    FondyCheckoutIntermediateFailureResponseDTO
+  export type FondyStatusResponseFailureDTO = FondyError
 
   export type FondyStatusResponseDTO =
     | FondyStatusResponseSuccessDTO

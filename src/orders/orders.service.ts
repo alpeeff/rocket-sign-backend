@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
-  NotFoundException,
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { IOrder, Order, OrderState } from './order.entity'
@@ -123,36 +122,23 @@ export class OrdersService {
     }
   }
 
-  async takeInProgress(orderId: string, whoAccepts: IUser) {
-    const orderExists = await this.orderRepository.findOneBy({
-      id: orderId,
-    })
-
-    if (!orderExists) {
-      throw new BadRequestException(`Order with id: ${orderId} doesn't exist!`)
-    }
-
+  async takeInProgress(order: IOrder, executor: IUser) {
     try {
       await this.orderRepository.update(
-        { id: orderExists.id },
-        { state: OrderState.InProgress, executor: whoAccepts },
+        { id: order.id },
+        { state: OrderState.InProgress, executor },
       )
     } catch (e) {
       throw new InternalServerErrorException()
     }
   }
 
-  async approveOrder(orderId: string, user: IUser) {
-    const orderExists = await this.orderRepository.findOne({
-      where: { id: orderId, user },
-      relations: { payment: true },
-    })
-
+  async approveOrder(order: IOrder) {
     try {
-      await this.paymentsConnector.capture(orderExists.payment)
+      await this.paymentsConnector.capture(order.payment)
 
       await this.orderRepository.update(
-        { id: orderExists.id },
+        { id: order.id },
         { state: OrderState.Done },
       )
     } catch (e) {
@@ -160,24 +146,28 @@ export class OrdersService {
     }
   }
 
-  async approveSoldierOrder(orderId: string, user: IUser) {
-    const orderExists = await this.orderRepository.findOneBy({
-      id: orderId,
-      executor: user,
-    })
-
-    if (!orderExists) {
-      throw new NotFoundException(`Order doesn't exist`)
-    }
-
-    if (!orderExists.files.length) {
+  async approveSoldierOrder(order: IOrder) {
+    if (!order.files.length) {
       throw new BadRequestException('Attach files to approve completeness')
     }
 
     await this.orderRepository.update(
-      { id: orderExists.id },
+      { id: order.id },
       { state: OrderState.WaitingForApproveFromCreator },
     )
+  }
+
+  async cancelOrder(order: IOrder) {
+    try {
+      await this.paymentsConnector.reverse(order.payment)
+
+      await this.orderRepository.update(
+        { id: order.id },
+        { state: OrderState.CancelledByExecutor },
+      )
+    } catch (e) {
+      throw new InternalServerErrorException()
+    }
   }
 
   async getOrdersPaymentSumByUser(user: IUser) {

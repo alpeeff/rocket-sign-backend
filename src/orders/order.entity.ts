@@ -20,6 +20,7 @@ export enum OrderState {
   WaitingForApproveFromCreator,
   Done,
   CancelledByModerator,
+  CancelledByExecutor,
 }
 
 export interface IOrder {
