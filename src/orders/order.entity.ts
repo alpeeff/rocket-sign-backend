@@ -1,7 +1,8 @@
+import { Exclude, instanceToPlain } from 'class-transformer'
 import { DeliveryType } from 'src/delivery-type/delivery-type.entity'
 import { Payment } from 'src/payments/payment.entity'
 import { ReportType } from 'src/report-type/report-type.entity'
-import { User } from 'src/users/user.entity'
+import { IUser, User } from 'src/users/user.entity'
 import {
   Column,
   Entity,
@@ -21,16 +22,29 @@ export enum OrderState {
   CancelledByModerator,
 }
 
+export interface IOrder {
+  id: string
+  user: IUser
+  executor: IUser
+  state: OrderState
+  reportType: number
+  sign: string
+  deliveryType: number
+  payment: Payment
+  files: string[]
+  published: boolean
+}
+
 @Entity()
-export class Order {
+export class Order implements IOrder {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
   @ManyToOne(() => User)
-  user: User
+  user: IUser
 
   @ManyToOne(() => User, { nullable: true })
-  executor: User
+  executor: IUser
 
   @Column({
     type: 'enum',
@@ -54,6 +68,11 @@ export class Order {
   @Column('text', { array: true, default: [] })
   files: string[]
 
+  @Exclude()
   @Column({ default: false })
   published: boolean
+
+  toJSON() {
+    return instanceToPlain(this)
+  }
 }

@@ -1,3 +1,4 @@
+import { Exclude, instanceToPlain } from 'class-transformer'
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
 export enum UserRole {
@@ -6,11 +7,20 @@ export enum UserRole {
   Admin,
 }
 
+export interface IUser {
+  id: string
+  role: UserRole
+  username: string
+  email: string
+  avatarId: string | null
+}
+
 @Entity()
-export class User {
+export class User implements IUser {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
+  @Exclude()
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -23,6 +33,7 @@ export class User {
   })
   username: string
 
+  @Exclude()
   @Column({
     unique: true,
   })
@@ -30,4 +41,8 @@ export class User {
 
   @Column({ nullable: true })
   avatarId: string | null
+
+  toJSON() {
+    return instanceToPlain(this)
+  }
 }

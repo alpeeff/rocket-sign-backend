@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { FilesService } from 'src/files/files.service'
-import { User } from './user.entity'
+import { IUser, User } from './user.entity'
 import { FileDTO } from 'src/files/types'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -12,7 +12,7 @@ export class UsersService {
     private filesService: FilesService,
   ) {}
 
-  async setAvatar(user: User, file: FileDTO) {
+  async setAvatar(user: IUser, file: FileDTO) {
     const id = await this.filesService.upload(
       user,
       'avatar',
@@ -23,7 +23,7 @@ export class UsersService {
     await this.usersRepository.update({ id: user.id }, { avatarId: id })
   }
 
-  async deleteAvatar(user: User) {
+  async deleteAvatar(user: IUser) {
     return await this.filesService.delete(user.avatarId)
   }
 }

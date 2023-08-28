@@ -5,7 +5,7 @@ import { Repository } from 'typeorm'
 import { S3Service } from 'src/s3/s3.service'
 import { FilesContentType, FileDTO } from './types'
 import { GetFileDTO } from './dtos'
-import { User } from 'src/users/user.entity'
+import { IUser } from 'src/users/user.entity'
 
 @Injectable()
 export class FilesService {
@@ -16,7 +16,7 @@ export class FilesService {
   ) {}
 
   async upload(
-    user: User,
+    user: IUser,
     fileName: string,
     buffer: Buffer,
     contentType: FilesContentType,

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { InjectRepository } from '@nestjs/typeorm'
-import { User } from 'src/users/user.entity'
+import { IUser, User } from 'src/users/user.entity'
 import { Repository } from 'typeorm'
 import { RegisterNewUserDTO, SignInUserDTO } from './dtos'
 import { generateFromEmail } from 'unique-username-generator'
@@ -63,7 +63,7 @@ export class AuthService {
     }
   }
 
-  async findUserByEmail(email: string): Promise<User | null> {
+  async findUserByEmail(email: string): Promise<IUser | null> {
     const user = await this.userRepository.findOne({ where: { email } })
 
     if (!user) {

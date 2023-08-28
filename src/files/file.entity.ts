@@ -1,4 +1,4 @@
-import { User } from 'src/users/user.entity'
+import { IUser, User } from 'src/users/user.entity'
 import {
   Column,
   CreateDateColumn,
@@ -16,7 +16,7 @@ export class FileEntity {
   createdAt: Date
 
   @ManyToOne(() => User)
-  user: User
+  user: IUser
 
   @Column()
   externalKey: string

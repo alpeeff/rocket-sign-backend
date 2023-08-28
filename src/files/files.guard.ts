@@ -5,7 +5,7 @@ import {
   Inject,
   NotFoundException,
 } from '@nestjs/common'
-import { User } from 'src/users/user.entity'
+import { IUser } from 'src/users/user.entity'
 import { GetFileDTO } from './dtos'
 import { FilesService } from './files.service'
 import { validate } from 'class-validator'
@@ -19,7 +19,7 @@ export class FilesGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest()
-    const { user, params }: { user: User; params: GetFileDTO } = request
+    const { user, params }: { user: IUser; params: GetFileDTO } = request
 
     const getFileParams = new GetFileDTO()
     getFileParams.fileId = params.fileId

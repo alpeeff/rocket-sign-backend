@@ -9,7 +9,7 @@ import {
 import { OrdersService } from './orders.service'
 import { FindOneOrderParams } from './dtos'
 import { validate } from 'class-validator'
-import { User } from 'src/users/user.entity'
+import { IUser } from 'src/users/user.entity'
 import { Reflector } from '@nestjs/core'
 
 export const CHECK_ORDER_POLICIES_KEY = 'check_order_policy'
@@ -49,14 +49,14 @@ export class OrderExistsGuard implements CanActivate {
 
     const orderExists = await this.ordersService.orderExistsForUser(
       findOneOrderParams.orderId,
-      user as User,
+      user as IUser,
     )
 
     if (!orderExists) {
       throw new BadRequestException(`Order doesn't exist`)
     }
 
-    const ability = this.caslAbilityFactory.createForUser(user as User)
+    const ability = this.caslAbilityFactory.createForUser(user as IUser)
     const result = actions.every((x) => ability.can(x, orderExists))
 
     if (result) {
