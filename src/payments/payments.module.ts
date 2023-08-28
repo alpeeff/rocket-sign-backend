@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common'
 import { PaymentsService } from './payments.service'
-import { PaymentsController } from './payments.controller'
 import { ConfigModule } from 'src/config/config.module'
 import { CaslModule } from 'src/casl/casl.module'
 import { FondyModule } from './fondy/fondy.module'
@@ -17,6 +16,5 @@ import { PaymentsConnector } from './payments.connector'
   ],
   providers: [PaymentsService, PaymentsConnector],
   exports: [PaymentsConnector],
-  controllers: [PaymentsController],
 })
 export class PaymentsModule {}
