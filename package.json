@@ -33,6 +33,7 @@
     "class-validator": "^0.14.0",
     "cloudipsp-node-js-sdk": "^1.0.8",
     "heic-convert": "^1.2.4",
+    "js-base64": "^3.7.5",
     "passport": "^0.6.0",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth2": "^0.2.0",

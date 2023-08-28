@@ -148,14 +148,6 @@ export class OrdersService {
       relations: { payment: true },
     })
 
-    if (orderExists.state !== OrderState.WaitingForApproveFromCreator) {
-      throw new BadRequestException(
-        `Order isn't in ${
-          OrderState[OrderState.WaitingForApproveFromCreator]
-        } state`,
-      )
-    }
-
     try {
       await this.paymentsConnector.capture(orderExists.payment)
 
@@ -203,7 +195,7 @@ export class OrdersService {
         .leftJoin(
           Payment,
           'payment',
-          `payment.id = order.paymentId AND payment.state = '${PaymentState.InSystem}'`,
+          `payment.id = order.paymentId AND payment.state = '${PaymentState.OnPaymentSystemAccount}'`,
         )
         .getRawOne<{ balance: number | null }>()
 

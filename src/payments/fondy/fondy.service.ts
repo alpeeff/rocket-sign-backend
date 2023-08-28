@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import * as CloudIpsp from 'cloudipsp-node-js-sdk'
 import { ConfigService } from 'src/config/config.service'
-import { FondyCurrency, FondyFlag } from 'src/types/fondy/types'
+import { FondyFlag } from 'src/types/fondy/types'
 import { generateSignature } from './utils'
 import {
   FondyCreateCaptureDTO,
@@ -10,6 +10,16 @@ import {
   FondyCreateReverseDTO,
 } from './dtos'
 
+/**
+ * 1. At first we create checkout using {createCheckout} method
+ *
+ * - After checkout there are 2 possible ways: Capture/Checkout
+ *
+ * - If we Capture, we put held money from payer's account to Fondy system.
+ *
+ * - If we Reverse, we put held money back to payer's account
+ *
+ */
 @Injectable()
 export class FondyService {
   fondy: CloudIpsp
@@ -73,16 +83,11 @@ export class FondyService {
         version: '1.0',
       })
     } catch (e) {
-      console.log(e)
       throw new InternalServerErrorException()
     }
   }
 
-  async createReverse({ orderId }: FondyCreateReverseDTO) {
-    // TODO: get transfer info from fondy/local db
-    const amount = 1
-    const currency = FondyCurrency.UAH
-
+  async createReverse({ amount, currency, orderId }: FondyCreateReverseDTO) {
     try {
       return await this.fondy.Reverse({
         amount,
@@ -92,20 +97,18 @@ export class FondyService {
         version: '1.0.1',
       })
     } catch (e) {
-      console.log(e)
       throw new InternalServerErrorException()
     }
   }
 
-  async getOrderStatus() {
+  async getOrderStatus(orderId: string) {
     try {
       return await this.fondy.Status({
         merchant_id: this.merchantId,
         version: '1.0',
-        order_id: '1396424_6SaqXPUtFjF9P4rYQDE5PdYkHRCRFdxwO6FVFqwy',
+        order_id: orderId,
       })
     } catch (e) {
-      console.log(e)
       throw new InternalServerErrorException()
     }
   }

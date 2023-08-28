@@ -45,13 +45,21 @@ export class PaymentsConnector {
 
   async capture(payment: Payment) {
     try {
-      await this.fondyService.createCapture({
-        amount: payment.usd_amount,
+      const capture = await this.fondyService.createCapture({
+        amount: payment.usdAmount,
         currency: payment.currency,
         orderId: payment.externalId,
       })
 
-      await this.paymentsService.changeState(payment.id, PaymentState.InSystem)
+      if (
+        capture.response_status === 'success' &&
+        capture.capture_status === 'captured'
+      ) {
+        await this.paymentsService.updateState(
+          payment,
+          PaymentState.OnPaymentSystemAccount,
+        )
+      }
     } catch (e) {
       throw new InternalServerErrorException()
     }

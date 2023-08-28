@@ -4,6 +4,9 @@ import { Payment, PaymentState } from './payment.entity'
 import { Repository } from 'typeorm'
 import { CreatePaymentDTO } from './dtos'
 
+// TODO: Change to API data
+const USD_CURRENCY = 36.94
+
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -14,7 +17,7 @@ export class PaymentsService {
     const payment = this.paymentRepository.create({
       amount,
       currency,
-      usd_amount: amount,
+      usdAmount: amount * USD_CURRENCY,
       externalId,
     })
 
@@ -25,29 +28,15 @@ export class PaymentsService {
     }
   }
 
-  async getById(id: string): Promise<Payment> {
-    try {
-      return await this.paymentRepository.findOneBy({ id })
-    } catch (e) {
-      throw new InternalServerErrorException()
-    }
+  async paymentExists(id: string): Promise<Payment> {
+    return await this.paymentRepository.findOneBy({ id })
   }
 
   async getByFondyId(externalId: string) {
-    try {
-      return await this.paymentRepository.findOne({
-        where: { externalId },
-      })
-    } catch (e) {
-      throw new InternalServerErrorException()
-    }
+    return await this.paymentRepository.findOneBy({ externalId })
   }
 
-  async changeState(paymentId: string, state: PaymentState) {
-    try {
-      await this.paymentRepository.update({ id: paymentId }, { state })
-    } catch (e) {
-      throw new InternalServerErrorException()
-    }
+  async updateState(payment: Payment, state: PaymentState) {
+    await this.paymentRepository.update(payment, { state })
   }
 }

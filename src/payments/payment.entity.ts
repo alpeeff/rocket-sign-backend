@@ -11,10 +11,17 @@ export enum PaymentCurrency {
   UAH = 'uah',
 }
 
+/**
+ * - Waiting - payment is waiting for fondy approve
+ * - Held - pre-auth operation is completed, amount is frozen
+ * - InSystem - capture operation is completed so amount is on fondy account
+ * - Paid - accountant paid soldier for order
+ * - Reversed - soldier cancelled order execution
+ */
 export enum PaymentState {
-  Waiting,
-  Held,
-  InSystem,
+  WaitingForPaymentSystem,
+  Frozen,
+  OnPaymentSystemAccount,
   Paid,
   Reversed,
 }
@@ -24,11 +31,11 @@ export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: number
 
-  @Column({ type: 'float' })
-  usd_amount: number
+  @Column({ name: 'usd_amount', type: 'float' })
+  usdAmount: number
 
   @Column({ type: 'float' })
   amount: number
@@ -40,12 +47,10 @@ export class Payment {
 
   @Column({
     enum: PaymentState,
-    default: PaymentState.Waiting,
+    default: PaymentState.WaitingForPaymentSystem,
   })
   state: PaymentState
 
-  @Column({
-    nullable: true,
-  })
+  @Column({ name: 'external_id' })
   externalId: string
 }
