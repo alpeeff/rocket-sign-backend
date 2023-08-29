@@ -4,7 +4,7 @@ import { ChatMessage } from './chat-message.entity'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { GetChatMessagesDTO, ReadMessageDTO, SendMessageDTO } from './dtos'
-import { Order } from 'src/orders/order.entity'
+import { IOrder } from 'src/orders/order.entity'
 import { IUser } from 'src/users/user.entity'
 
 @Injectable()
@@ -14,7 +14,7 @@ export class ChatService {
     private chatMessageRepository: Repository<ChatMessage>,
   ) {}
 
-  async send(user: IUser, order: Order, sendMessageDto: SendMessageDTO) {
+  async send(user: IUser, order: IOrder, sendMessageDto: SendMessageDTO) {
     const receiver = order.user.id === user.id ? order.executor : order.user
 
     const message = this.chatMessageRepository.create({

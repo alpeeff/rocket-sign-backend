@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FileEntity } from './file.entity'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { S3Service } from 'src/s3/s3.service'
 import { FilesContentType, FileDTO } from './types'
 import { GetFileDTO } from './dtos'
@@ -24,7 +24,7 @@ export class FilesService {
     const key = `${user.id}_${fileName}`
 
     const fileEntity = new FileEntity()
-    fileEntity.user = user
+    fileEntity.owners = [user]
     fileEntity.externalKey = key
 
     const { id } = await this.filesRepository.save(fileEntity)
@@ -33,9 +33,13 @@ export class FilesService {
     return id
   }
 
-  async get(fileId: string): Promise<FileDTO> {
+  async getStorageFile(fileId: string): Promise<FileDTO> {
     const fileExists = await this.fileExists({ fileId })
     return await this.s3Service.getFile(fileExists.externalKey)
+  }
+
+  async get(filesIds: string[]) {
+    return await this.filesRepository.find({ where: { id: In(filesIds) } })
   }
 
   async delete(fileId: string) {
@@ -49,10 +53,48 @@ export class FilesService {
     await this.filesRepository.remove(fileExists)
   }
 
+  async addOwner(files: FileEntity[], newOwner: IUser) {
+    await Promise.all(
+      files.map((file) =>
+        this.filesRepository.update(
+          { id: file.id },
+          { owners: file.owners.concat(newOwner) },
+        ),
+      ),
+    )
+  }
+
+  async removeOwner(files: FileEntity[], oldOwner: IUser) {
+    await Promise.all(
+      files.map((file) =>
+        this.filesRepository.update(
+          { id: file.id },
+          { owners: file.owners.filter((x) => x.id !== oldOwner.id) },
+        ),
+      ),
+    )
+  }
+
+  async publish(files: FileEntity[]) {
+    await Promise.all(
+      files.map((file) => this.changePublishedStateOnFile(file.id, true)),
+    )
+  }
+
+  async unpublish(files: FileEntity[]) {
+    await Promise.all(
+      files.map((file) => this.changePublishedStateOnFile(file.id, false)),
+    )
+  }
+
+  async changePublishedStateOnFile(fileId: string, published: boolean) {
+    await this.filesRepository.update({ id: fileId }, { published })
+  }
+
   async fileExists(getFileDto: GetFileDTO) {
     const fileExists = await this.filesRepository.findOne({
       where: { id: getFileDto.fileId },
-      relations: { user: true },
+      relations: { owners: true },
     })
 
     return fileExists

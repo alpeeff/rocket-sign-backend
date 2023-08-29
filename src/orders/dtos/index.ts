@@ -1,6 +1,13 @@
 import { PaginationOptionsDTO } from 'src/pagination/pagination'
 import { OrderState } from '../order.entity'
-import { IsEnum, IsInt, IsOptional, IsString, IsUUID } from 'class-validator'
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator'
 
 export class CreateNewOrderDTO {
   @IsString()
@@ -27,4 +34,9 @@ export class GetOrdersDTO extends PaginationOptionsDTO {
 export class FindOneOrderParams {
   @IsUUID()
   orderId: string
+}
+
+export class ApproveOrderDTO {
+  @IsBoolean()
+  publish: boolean
 }

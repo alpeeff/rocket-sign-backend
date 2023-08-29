@@ -112,6 +112,7 @@ export class CaslAbilityFactory {
     can(Action.Read, Order, { published: true })
 
     can<FlatFile>(Action.Read, FileEntity, { 'owners.id': user.id })
+    can<FlatFile>(Action.Read, FileEntity, { published: true })
 
     can<FlatOrder>(Action.SendReadMessage, Order, {
       'user.id': user.id,

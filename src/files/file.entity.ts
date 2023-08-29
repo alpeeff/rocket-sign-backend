@@ -3,7 +3,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
+  JoinTable,
+  ManyToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
@@ -15,9 +16,13 @@ export class FileEntity {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
-  @ManyToOne(() => User)
-  user: IUser
+  @ManyToMany(() => User)
+  @JoinTable()
+  owners: IUser[]
 
   @Column()
   externalKey: string
+
+  @Column({ default: false })
+  published: boolean
 }

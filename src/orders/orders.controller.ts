@@ -15,7 +15,7 @@ import { OrdersService } from './orders.service'
 import { Request } from 'express'
 import { IOrder, Order } from './order.entity'
 import { Action } from 'src/casl/casl-ability.factory'
-import { CreateNewOrderDTO, GetOrdersDTO } from './dtos'
+import { ApproveOrderDTO, CreateNewOrderDTO, GetOrdersDTO } from './dtos'
 import { FilesInterceptor } from '@nestjs/platform-express'
 import { AuthGuard } from 'src/auth/guards/auth.guard'
 import { CheckOrderPolicies, OrderExistsGuard } from './orders.guard'
@@ -119,8 +119,11 @@ export class OrdersController {
   @UseGuards(OrderExistsGuard)
   @CheckOrderPolicies(Action.ApproveFromCreator)
   @AuthGuard()
-  async approve(@OrderParam() order: IOrder) {
-    await this.ordersService.approveOrder(order)
+  async approve(
+    @OrderParam() order: IOrder,
+    @Body(new ValidationPipe()) approveOrderDto: ApproveOrderDTO,
+  ) {
+    await this.ordersService.approveOrder(order, approveOrderDto)
   }
 
   /**

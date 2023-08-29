@@ -9,6 +9,7 @@ import { ConfigModule } from 'src/config/config.module'
 import { PaymentsModule } from 'src/payments/payments.module'
 import { ReportType } from 'src/report-type/report-type.entity'
 import { FilesModule } from 'src/files/files.module'
+import { ChatModule } from 'src/chat/chat.module'
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { FilesModule } from 'src/files/files.module'
     CaslModule,
     ConfigModule,
     PaymentsModule,
+    ChatModule,
     FilesModule,
   ],
   exports: [OrdersService],

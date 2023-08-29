@@ -13,7 +13,9 @@ export class FilesController {
   @UseGuards(FilesGuard)
   @AuthGuard()
   async getOrderFile(@FileParam() file: FileEntity) {
-    const { buffer, contentType } = await this.filesService.get(file.id)
+    const { buffer, contentType } = await this.filesService.getStorageFile(
+      file.id,
+    )
     return new StreamableFile(buffer, { type: contentType })
   }
 }

@@ -8,7 +8,7 @@ import { IOrder, Order, OrderState } from './order.entity'
 import { DataSource, FindOptionsWhere, Repository } from 'typeorm'
 import { DeliveryType } from 'src/delivery-type/delivery-type.entity'
 import { IUser, UserRole } from 'src/users/user.entity'
-import { CreateNewOrderDTO, GetOrdersDTO } from './dtos'
+import { ApproveOrderDTO, CreateNewOrderDTO, GetOrdersDTO } from './dtos'
 import { PaymentsConnector } from 'src/payments/payments.connector'
 import { FondyCurrency } from 'src/types/fondy/types'
 import { ReportType } from 'src/report-type/report-type.entity'
@@ -136,7 +136,7 @@ export class OrdersService {
     }
   }
 
-  async approveOrder(order: IOrder) {
+  async approveOrder(order: IOrder, approveOrderDto: ApproveOrderDTO) {
     try {
       await this.paymentsConnector.capture(order.payment)
 
@@ -144,6 +144,11 @@ export class OrdersService {
         { id: order.id },
         { state: OrderState.Done },
       )
+
+      if (approveOrderDto.publish) {
+        const files = await this.filesService.get(order.files)
+        await this.filesService.publish(files)
+      }
     } catch (e) {
       throw new InternalServerErrorException()
     }
