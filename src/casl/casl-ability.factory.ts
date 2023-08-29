@@ -25,6 +25,7 @@ export enum Action {
   AttachFiles = 'attach-files',
   SendReadMessage = 'send-message',
   CancelExecution = 'cancel-execution',
+  AppealOrder = 'appeal-order',
 }
 
 type FlatOrder = Order & {
@@ -33,7 +34,7 @@ type FlatOrder = Order & {
 }
 
 type FlatFile = FileEntity & {
-  'user.id': FileEntity['user']['id']
+  'owners.id': FileEntity['owners'][number]['id']
 }
 
 type Subjects =
@@ -69,42 +70,59 @@ export class CaslAbilityFactory {
           state: OrderState.WaitingForApproveFromCreator,
         })
 
+        can<FlatOrder>(Action.CancelExecution, Order, {
+          'user.id': user.id,
+          state: {
+            $in: [OrderState.WaitingForExecutor, OrderState.InModeration],
+          },
+        })
+
+        can<FlatOrder>(Action.AppealOrder, Order, {
+          'user.id': user.id,
+          state: OrderState.WaitingForApproveFromCreator,
+        })
+
         break
 
       case UserRole.Soldier:
         can<FlatOrder>(Action.Read, Order, { 'executor.id': user.id })
+
         can<FlatOrder>(Action.AttachFiles, Order, { 'executor.id': user.id })
+
         can<FlatOrder>(Action.TakeInProgress, Order, {
           executor: null,
           state: OrderState.WaitingForExecutor,
         })
+
         can<FlatOrder>(Action.ApproveFromExecutor, Order, {
           'executor.id': user.id,
           state: OrderState.InProgress,
         })
+
         can<FlatOrder>(Action.CancelExecution, Order, {
           'executor.id': user.id,
           state: {
-            $in: [
-              OrderState.InProgress,
-              OrderState.WaitingForApproveFromCreator,
-            ],
+            $in: [OrderState.InProgress],
           },
         })
+
         break
     }
 
     can(Action.Read, Order, { published: true })
-    can<FlatFile>(Action.Read, FileEntity, { 'user.id': user.id })
+
+    can<FlatFile>(Action.Read, FileEntity, { 'owners.id': user.id })
 
     can<FlatOrder>(Action.SendReadMessage, Order, {
       'user.id': user.id,
-      state: OrderState.WaitingForApproveFromCreator,
+      state: {
+        $in: [OrderState.Appeal],
+      },
     })
 
     can<FlatOrder>(Action.SendReadMessage, Order, {
       'executor.id': user.id,
-      state: OrderState.WaitingForApproveFromCreator,
+      state: OrderState.Appeal,
     })
 
     return build({

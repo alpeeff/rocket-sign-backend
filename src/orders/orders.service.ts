@@ -18,6 +18,8 @@ import { PaginationOptionsDTO, Pagination } from 'src/pagination/pagination'
 import { FileDTO } from 'src/files/types'
 import { FileEntity } from 'src/files/file.entity'
 import { FondyCreateCheckoutResultDTO } from 'src/payments/fondy/dtos'
+import { SendMessageDTO } from 'src/chat/dtos'
+import { ChatService } from 'src/chat/chat.service'
 
 @Injectable()
 export class OrdersService {
@@ -30,6 +32,7 @@ export class OrdersService {
     @InjectDataSource() private dataSource: DataSource,
     private paymentsConnector: PaymentsConnector,
     private filesService: FilesService,
+    private chatService: ChatService,
   ) {}
 
   async createNewOrder(
@@ -77,19 +80,19 @@ export class OrdersService {
   }
 
   async get(getOrdersDto: GetOrdersDTO, user: IUser) {
+    const where: FindOptionsWhere<IOrder> =
+      user.role === UserRole.Default ? { user } : { executor: user }
+
+    where.state = getOrdersDto.state
+
+    if (
+      user.role === UserRole.Soldier &&
+      getOrdersDto.state === OrderState.WaitingForExecutor
+    ) {
+      where.executor = null
+    }
+
     try {
-      const where: FindOptionsWhere<Order> =
-        user.role === UserRole.Soldier
-          ? {
-              executor:
-                getOrdersDto.state === OrderState.WaitingForExecutor
-                  ? undefined
-                  : user,
-            }
-          : { user }
-
-      where.state = getOrdersDto.state
-
       const [results, count] = await this.orderRepository.findAndCount({
         where,
         take: getOrdersDto.limit,
@@ -155,6 +158,9 @@ export class OrdersService {
       { id: order.id },
       { state: OrderState.WaitingForApproveFromCreator },
     )
+
+    const files = await this.filesService.get(order.files)
+    await this.filesService.addOwner(files, order.user)
   }
 
   async cancelOrder(order: IOrder) {
@@ -195,7 +201,7 @@ export class OrdersService {
     }
   }
 
-  async attachFiles(user: IUser, order: Order, files: FileDTO[]) {
+  async attachFiles(user: IUser, order: IOrder, files: FileDTO[]) {
     const ids = await Promise.all(
       files.map(({ buffer, contentType }, i) =>
         this.filesService.upload(
@@ -213,7 +219,7 @@ export class OrdersService {
     )
   }
 
-  async deleteAttachment(order: Order, file: FileEntity) {
+  async deleteAttachment(order: IOrder, file: FileEntity) {
     await this.filesService.delete(file.id)
 
     await this.orderRepository.update(
@@ -222,12 +228,28 @@ export class OrdersService {
     )
   }
 
+  async appeal(user: IUser, order: IOrder, sendMessageDto: SendMessageDTO) {
+    await this.orderRepository.update(
+      { id: order.id },
+      { state: OrderState.Appeal },
+    )
+
+    await this.chatService.send(user, order, sendMessageDto)
+  }
+
   async orderExistsForUser(orderId: string, user: IUser) {
+    const where: FindOptionsWhere<Order> = { id: orderId }
+
+    if (user.role === UserRole.Default) {
+      where.user = user
+    }
+
     const orderExistsForUser = await this.orderRepository.findOne({
-      where: { id: orderId, user },
+      where,
       relations: {
         executor: true,
         user: true,
+        payment: true,
       },
     })
 

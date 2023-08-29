@@ -27,6 +27,7 @@ import { FileEntity } from 'src/files/file.entity'
 import { FileDTO } from 'src/files/types'
 import { MAX_ORDER_FILES_LENGTH } from 'src/files/validations'
 import { FondyCheckoutIntermediateSuccessResponseDTO } from 'cloudipsp-node-js-sdk'
+import { SendMessageDTO } from 'src/chat/dtos'
 
 @Controller('orders')
 export class OrdersController {
@@ -118,7 +119,7 @@ export class OrdersController {
   @UseGuards(OrderExistsGuard)
   @CheckOrderPolicies(Action.ApproveFromCreator)
   @AuthGuard()
-  async approve(@OrderParam() order: Order) {
+  async approve(@OrderParam() order: IOrder) {
     await this.ordersService.approveOrder(order)
   }
 
@@ -147,7 +148,7 @@ export class OrdersController {
   @CheckOrderPolicies(Action.AttachFiles)
   @AuthGuard()
   async uploadAttachments(
-    @OrderParam() order: Order,
+    @OrderParam() order: IOrder,
     @OrderFilesParam() files: FileDTO[],
     @Req() req: Request,
   ) {
@@ -170,7 +171,7 @@ export class OrdersController {
   @AuthGuard()
   async getOrderFile(
     @FileParam() file: FileEntity,
-    @OrderParam() order: Order,
+    @OrderParam() order: IOrder,
   ) {
     await this.ordersService.deleteAttachment(order, file)
   }
@@ -186,7 +187,26 @@ export class OrdersController {
   @UseGuards(OrderExistsGuard)
   @CheckOrderPolicies(Action.CancelExecution)
   @AuthGuard()
-  async cancelOrder(@OrderParam() order: Order) {
+  async cancelOrder(@OrderParam() order: IOrder) {
     await this.ordersService.cancelOrder(order)
+  }
+
+  /**
+   * @description Starts order appeal proccess
+   *
+   * User with {UserRole.Default} can start appeal proccess if order is in {OrderState.WaitingForApproveFromCreator}
+   * and attach first message of conversation
+   *
+   */
+  @Post('appeal/:orderId')
+  @UseGuards(OrderExistsGuard)
+  @CheckOrderPolicies(Action.AppealOrder)
+  @AuthGuard()
+  async appeal(
+    @OrderParam() order: IOrder,
+    @Body(new ValidationPipe()) sendMessageDto: SendMessageDTO,
+    @Req() req: Request,
+  ) {
+    await this.ordersService.appeal(req.user, order, sendMessageDto)
   }
 }

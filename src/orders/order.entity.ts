@@ -21,6 +21,7 @@ export enum OrderState {
   Done,
   CancelledByModerator,
   CancelledByExecutor,
+  Appeal,
 }
 
 export interface IOrder {
@@ -74,6 +75,14 @@ export class Order implements IOrder {
   published: boolean
 
   toJSON() {
+    if (
+      ![OrderState.Done, OrderState.WaitingForApproveFromCreator].includes(
+        this.state,
+      )
+    ) {
+      this.files = undefined
+    }
+
     return instanceToPlain(this)
   }
 }
