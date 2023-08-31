@@ -23,9 +23,11 @@ export enum Action {
   ApproveFromCreator = 'approve-from-creator',
   ApproveFromExecutor = 'approve-from-executor',
   AttachFiles = 'attach-files',
+  DeleteAttachment = 'delete-attachment',
   SendReadMessage = 'send-message',
   CancelExecution = 'cancel-execution',
   AppealOrder = 'appeal-order',
+  Reapprove = 'reapprove',
 }
 
 type FlatOrder = Order & {
@@ -82,10 +84,20 @@ export class CaslAbilityFactory {
           state: OrderState.WaitingForApproveFromCreator,
         })
 
+        can<FlatOrder>(Action.SendReadMessage, Order, {
+          'user.id': user.id,
+          state: {
+            $in: [OrderState.Appeal],
+          },
+        })
+
         break
 
       case UserRole.Soldier:
         can<FlatOrder>(Action.Read, Order, { 'executor.id': user.id })
+        can(Action.Read, Order, {
+          state: OrderState.WaitingForExecutor,
+        })
 
         can<FlatOrder>(Action.AttachFiles, Order, { 'executor.id': user.id })
 
@@ -99,10 +111,27 @@ export class CaslAbilityFactory {
           state: OrderState.InProgress,
         })
 
+        can<FlatOrder>(Action.Reapprove, Order, {
+          'executor.id': user.id,
+          state: OrderState.Appeal,
+        })
+
         can<FlatOrder>(Action.CancelExecution, Order, {
           'executor.id': user.id,
           state: {
             $in: [OrderState.InProgress],
+          },
+        })
+
+        can<FlatOrder>(Action.SendReadMessage, Order, {
+          'executor.id': user.id,
+          state: OrderState.Appeal,
+        })
+
+        can<FlatOrder>(Action.DeleteAttachment, Order, {
+          'executor.id': user.id,
+          state: {
+            $in: [OrderState.InProgress, OrderState.Appeal],
           },
         })
 
@@ -113,18 +142,6 @@ export class CaslAbilityFactory {
 
     can<FlatFile>(Action.Read, FileEntity, { 'owners.id': user.id })
     can<FlatFile>(Action.Read, FileEntity, { published: true })
-
-    can<FlatOrder>(Action.SendReadMessage, Order, {
-      'user.id': user.id,
-      state: {
-        $in: [OrderState.Appeal],
-      },
-    })
-
-    can<FlatOrder>(Action.SendReadMessage, Order, {
-      'executor.id': user.id,
-      state: OrderState.Appeal,
-    })
 
     return build({
       detectSubjectType: (object) =>

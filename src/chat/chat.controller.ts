@@ -18,6 +18,7 @@ import { ReadMessageDTO, SendMessageDTO } from './dtos'
 import { Action } from 'src/casl/casl-ability.factory'
 import { Request } from 'express'
 import { PaginationOptionsDTO } from 'src/pagination/pagination'
+import { PaginationTransformQueryPipe } from 'src/pagination/pagination.pipe'
 
 @Controller('chat')
 export class ChatController {
@@ -41,12 +42,7 @@ export class ChatController {
   @AuthGuard()
   async getMessages(
     @OrderParam() order: Order,
-    @Query(
-      new ValidationPipe({
-        transform: true,
-        transformOptions: { enableImplicitConversion: true },
-      }),
-    )
+    @Query(new PaginationTransformQueryPipe())
     options: PaginationOptionsDTO,
   ) {
     return await this.chatService.get({ orderId: order.id, ...options })

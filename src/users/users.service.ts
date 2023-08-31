@@ -13,14 +13,14 @@ export class UsersService {
   ) {}
 
   async setAvatar(user: IUser, file: FileDTO) {
-    const id = await this.filesService.upload(
+    const avatar = await this.filesService.upload(
       user,
       'avatar',
       file.buffer,
       file.contentType,
     )
 
-    await this.usersRepository.update({ id: user.id }, { avatarId: id })
+    await this.usersRepository.update({ id: user.id }, { avatarId: avatar.id })
   }
 
   async deleteAvatar(user: IUser) {
