@@ -11,6 +11,8 @@ import { FindOneOrderParams } from './dtos'
 import { validate } from 'class-validator'
 import { IUser } from 'src/users/user.entity'
 import { Reflector } from '@nestjs/core'
+import { IOrder } from './order.entity'
+import { MAX_ORDER_FILES_LENGTH } from 'src/files/validations'
 
 export const CHECK_ORDER_POLICIES_KEY = 'check_order_policy'
 export const CheckOrderPolicies = (...actions: Action[]) => {
@@ -64,5 +66,20 @@ export class OrderExistsGuard implements CanActivate {
     }
 
     return result
+  }
+}
+
+export class OrderFileLengthGuard implements CanActivate {
+  async canActivate(context: ExecutionContext) {
+    const request = context.switchToHttp().getRequest()
+    const { order }: { order: IOrder } = request
+
+    if (order.files.length >= MAX_ORDER_FILES_LENGTH) {
+      throw new BadRequestException(
+        `You cannot upload more than ${MAX_ORDER_FILES_LENGTH} files`,
+      )
+    }
+
+    return true
   }
 }

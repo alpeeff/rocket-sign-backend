@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,24 +13,31 @@ import {
 import { OrdersService } from './orders.service'
 import { Request } from 'express'
 import { IOrder, Order } from './order.entity'
-import { Action } from 'src/casl/casl-ability.factory'
+import { Action, CaslAbilityFactory } from 'src/casl/casl-ability.factory'
 import { ApproveOrderDTO, CreateNewOrderDTO, GetOrdersDTO } from './dtos'
 import { FilesInterceptor } from '@nestjs/platform-express'
 import { AuthGuard } from 'src/auth/guards/auth.guard'
-import { CheckOrderPolicies, OrderExistsGuard } from './orders.guard'
+import {
+  CheckOrderPolicies,
+  OrderExistsGuard,
+  OrderFileLengthGuard,
+} from './orders.guard'
 import { OrderFilesParam, OrderParam } from './orders.decorator'
 import { Pagination, PaginationOptionsDTO } from 'src/pagination/pagination'
 import { FilesGuard } from 'src/files/files.guard'
 import { FileParam } from 'src/files/files.decorator'
 import { FileEntity } from 'src/files/file.entity'
 import { FileDTO } from 'src/files/types'
-import { MAX_ORDER_FILES_LENGTH } from 'src/files/validations'
 import { FondyCheckoutIntermediateSuccessResponseDTO } from 'cloudipsp-node-js-sdk'
 import { SendMessageDTO } from 'src/chat/dtos'
+import { PaginationTransformQueryPipe } from 'src/pagination/pagination.pipe'
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private ordersService: OrdersService) {}
+  constructor(
+    private ordersService: OrdersService,
+    private casl: CaslAbilityFactory,
+  ) {}
 
   /**
    * @description Retrieves user's paginated orders
@@ -44,12 +50,7 @@ export class OrdersController {
   @Get()
   @AuthGuard((ability) => ability.can(Action.Read, Order))
   async get(
-    @Query(
-      new ValidationPipe({
-        transform: true,
-        transformOptions: { enableImplicitConversion: true },
-      }),
-    )
+    @Query(new PaginationTransformQueryPipe())
     getOrdersDto: GetOrdersDTO,
     @Req() req: Request,
   ): Promise<Pagination<IOrder>> {
@@ -83,12 +84,7 @@ export class OrdersController {
    */
   @Get('feed')
   async getFeed(
-    @Query(
-      new ValidationPipe({
-        transform: true,
-        transformOptions: { enableImplicitConversion: true },
-      }),
-    )
+    @Query(new PaginationTransformQueryPipe())
     options: PaginationOptionsDTO,
   ): Promise<Pagination<IOrder>> {
     return await this.ordersService.getFeed(options)
@@ -142,12 +138,32 @@ export class OrdersController {
   }
 
   /**
+   * @description Changes order's state {OrderState.InProgress} -> {OrderState.WaitingForApproveFromCreator}
+   * and sets {order.executor = user}
+   *
+   * User with {UserRole.Soldier} should attach minimum 1 file to approve order completeness.
+   *
+   */
+  @Post('reapprove-soldier/:orderId')
+  @UseInterceptors(FilesInterceptor('attachments'))
+  @UseGuards(OrderExistsGuard, OrderFileLengthGuard)
+  @CheckOrderPolicies(Action.ApproveFromExecutor)
+  @AuthGuard()
+  async reApproveSoldier(
+    @OrderParam() order: IOrder,
+    @OrderFilesParam() files: FileDTO[],
+    @Req() req: Request,
+  ) {
+    await this.ordersService.reapproveSoldierOrder(req.user, order, files)
+  }
+
+  /**
    * @description Attaches files to order
    *
    */
   @Post('file/:orderId')
   @UseInterceptors(FilesInterceptor('attachments'))
-  @UseGuards(OrderExistsGuard)
+  @UseGuards(OrderExistsGuard, OrderFileLengthGuard)
   @CheckOrderPolicies(Action.AttachFiles)
   @AuthGuard()
   async uploadAttachments(
@@ -155,12 +171,6 @@ export class OrdersController {
     @OrderFilesParam() files: FileDTO[],
     @Req() req: Request,
   ) {
-    if (order.files.length >= MAX_ORDER_FILES_LENGTH) {
-      throw new BadRequestException(
-        `You cannot upload more than ${MAX_ORDER_FILES_LENGTH} files`,
-      )
-    }
-
     await this.ordersService.attachFiles(req.user, order, files)
   }
 
@@ -171,12 +181,10 @@ export class OrdersController {
   @Delete('file/:orderId/:fileId')
   @UseGuards(FilesGuard)
   @UseGuards(OrderExistsGuard)
+  @CheckOrderPolicies(Action.DeleteAttachment)
   @AuthGuard()
-  async getOrderFile(
-    @FileParam() file: FileEntity,
-    @OrderParam() order: IOrder,
-  ) {
-    await this.ordersService.deleteAttachment(order, file)
+  async deleteAttachment(@FileParam() file: FileEntity) {
+    await this.ordersService.deleteAttachment(file)
   }
 
   /**

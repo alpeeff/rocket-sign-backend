@@ -5,12 +5,15 @@ import { ReportType } from 'src/report-type/report-type.entity'
 import { IUser, User } from 'src/users/user.entity'
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
+import { OrderFile } from './order-file.entity'
 
 export enum OrderState {
   Draft,
@@ -29,12 +32,14 @@ export interface IOrder {
   user: IUser
   executor: IUser
   state: OrderState
-  reportType: number
+  reportType: ReportType
+  deliveryType: DeliveryType
   sign: string
-  deliveryType: number
   payment: Payment
-  files: string[]
+  files: OrderFile[]
   published: boolean
+  createdAt: Date
+  completedAt: Date
 }
 
 @Entity()
@@ -54,35 +59,33 @@ export class Order implements IOrder {
   })
   state: OrderState
 
-  @ManyToOne(() => ReportType, (reportType) => reportType.id)
-  reportType: number
+  @ManyToOne(() => ReportType, (reportType) => reportType)
+  reportType: ReportType
+
+  @ManyToOne(() => DeliveryType, (deliveryType) => deliveryType)
+  deliveryType: DeliveryType
 
   @Column()
   sign: string
-
-  @ManyToOne(() => DeliveryType, (deliveryType) => deliveryType.id)
-  deliveryType: number
 
   @OneToOne(() => Payment)
   @JoinColumn()
   payment: Payment
 
-  @Column('text', { array: true, default: [] })
-  files: string[]
+  @OneToMany(() => OrderFile, (orderFile) => orderFile.order)
+  files: OrderFile[]
 
   @Exclude()
   @Column({ default: false })
   published: boolean
 
-  toJSON() {
-    if (
-      ![OrderState.Done, OrderState.WaitingForApproveFromCreator].includes(
-        this.state,
-      )
-    ) {
-      this.files = undefined
-    }
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date
 
+  @Column({ name: 'completed_at', nullable: true })
+  completedAt: Date
+
+  toJSON() {
     return instanceToPlain(this)
   }
 }

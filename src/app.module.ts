@@ -14,6 +14,7 @@ import { FileEntity } from './files/file.entity'
 import { ChatMessage } from './chat/chat-message.entity'
 import { ChatModule } from './chat/chat.module'
 import { OrdersModule } from './orders/orders.module'
+import { OrderFile } from './orders/order-file.entity'
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { OrdersModule } from './orders/orders.module'
         entities: [
           User,
           Order,
+          OrderFile,
           Payment,
           DeliveryType,
           ReportType,

@@ -27,10 +27,10 @@ export class FilesService {
     fileEntity.owners = [user]
     fileEntity.externalKey = key
 
-    const { id } = await this.filesRepository.save(fileEntity)
+    const file = await this.filesRepository.save(fileEntity)
     await this.s3Service.upload(fileEntity.externalKey, buffer, contentType)
 
-    return id
+    return file
   }
 
   async getStorageFile(fileId: string): Promise<FileDTO> {
@@ -39,7 +39,10 @@ export class FilesService {
   }
 
   async get(filesIds: string[]) {
-    return await this.filesRepository.find({ where: { id: In(filesIds) } })
+    return await this.filesRepository.find({
+      where: { id: In(filesIds) },
+      relations: { owners: true },
+    })
   }
 
   async delete(fileId: string) {
@@ -56,10 +59,10 @@ export class FilesService {
   async addOwner(files: FileEntity[], newOwner: IUser) {
     await Promise.all(
       files.map((file) =>
-        this.filesRepository.update(
-          { id: file.id },
-          { owners: file.owners.concat(newOwner) },
-        ),
+        this.filesRepository.save({
+          id: file.id,
+          owners: file.owners.concat(newOwner),
+        }),
       ),
     )
   }

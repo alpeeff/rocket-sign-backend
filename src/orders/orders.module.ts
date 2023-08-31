@@ -10,10 +10,11 @@ import { PaymentsModule } from 'src/payments/payments.module'
 import { ReportType } from 'src/report-type/report-type.entity'
 import { FilesModule } from 'src/files/files.module'
 import { ChatModule } from 'src/chat/chat.module'
+import { OrderFile } from './order-file.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, DeliveryType, ReportType]),
+    TypeOrmModule.forFeature([Order, OrderFile, DeliveryType, ReportType]),
     CaslModule,
     ConfigModule,
     PaymentsModule,
