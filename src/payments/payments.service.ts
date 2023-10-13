@@ -4,9 +4,6 @@ import { Payment, PaymentState } from './payment.entity'
 import { Repository } from 'typeorm'
 import { CreatePaymentDTO } from './dtos'
 
-// TODO: Change to API data
-const USD_CURRENCY = 36.94
-
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -17,7 +14,6 @@ export class PaymentsService {
     const payment = this.paymentRepository.create({
       amount,
       currency,
-      usdAmount: amount * USD_CURRENCY,
       externalId,
     })
 

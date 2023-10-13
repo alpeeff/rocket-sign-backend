@@ -46,7 +46,7 @@ export class PaymentsConnector {
   async capture(payment: Payment) {
     try {
       const capture = await this.fondyService.createCapture({
-        amount: payment.usdAmount,
+        amount: payment.amount,
         currency: payment.currency,
         orderId: payment.externalId,
       })
@@ -68,7 +68,7 @@ export class PaymentsConnector {
   async reverse(payment: Payment) {
     try {
       const capture = await this.fondyService.createReverse({
-        amount: payment.usdAmount,
+        amount: payment.amount,
         currency: payment.currency,
         orderId: payment.externalId,
       })

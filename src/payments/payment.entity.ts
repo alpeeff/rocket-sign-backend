@@ -12,9 +12,9 @@ export enum PaymentCurrency {
 }
 
 /**
- * - Waiting - payment is waiting for fondy approve
- * - Held - pre-auth operation is completed, amount is frozen
- * - InSystem - capture operation is completed so amount is on fondy account
+ * - WaitingForPaymentSystem - payment is waiting for fondy approve
+ * - Frozen - pre-auth operation is completed, amount is frozen
+ * - OnPaymentSystemAccount - capture operation is completed so amount is on fondy account
  * - Paid - accountant paid soldier for order
  * - Reversed - soldier cancelled order execution
  */
@@ -33,9 +33,6 @@ export class Payment {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: number
-
-  @Column({ name: 'usd_amount', type: 'float' })
-  usdAmount: number
 
   @Column({ type: 'float' })
   amount: number
