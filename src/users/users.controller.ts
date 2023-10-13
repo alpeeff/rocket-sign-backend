@@ -44,4 +44,10 @@ export class UsersController {
 
     await this.usersService.deleteAvatar(req.user)
   }
+
+  @Get('info')
+  @AuthGuard()
+  async getInfo(@Req() req: Request) {
+    return await this.usersService.getInfo(req.user)
+  }
 }

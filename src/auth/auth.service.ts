@@ -29,19 +29,14 @@ export class AuthService {
 
     const userExists = await this.findUserByEmail(user.email)
 
-    let jwt: string
-
     if (!userExists) {
-      jwt = await this.registerNewUser({ email: user.email })
-      return
+      return await this.registerNewUser({ email: user.email })
     }
 
-    jwt = this.generateJwt({
+    return this.generateJwt({
       sub: userExists.id,
       email: userExists.email,
     })
-
-    return jwt
   }
 
   async registerNewUser(user: RegisterNewUserDTO) {

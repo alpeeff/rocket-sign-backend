@@ -23,12 +23,10 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
     profile: Profile,
     done: VerifiedCallback,
   ) {
-    const { name, emails } = profile
+    const { emails } = profile
 
     const user: SignInUserDTO = {
       email: emails[0].value,
-      firstName: name.givenName,
-      lastName: name.familyName,
     }
 
     done(null, user)

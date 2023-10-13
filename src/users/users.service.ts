@@ -26,4 +26,10 @@ export class UsersService {
   async deleteAvatar(user: IUser) {
     return await this.filesService.delete(user.avatarId)
   }
+
+  async getInfo(user: IUser) {
+    const userInfo = await this.usersRepository.findOneBy({ id: user.id })
+
+    return { ...userInfo }
+  }
 }
