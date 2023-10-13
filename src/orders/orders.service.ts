@@ -4,24 +4,31 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { IOrder, Order, OrderState } from './order.entity'
+import { IOrder, Order, OrderState, TranslatedOrder } from './order.entity'
 import { DataSource, FindOptionsWhere, Repository } from 'typeorm'
-import { DeliveryType } from 'src/delivery-type/delivery-type.entity'
+import {
+  DeliveryType,
+  translateDeliveryType,
+} from 'src/delivery-type/delivery-type.entity'
 import { IUser, UserRole } from 'src/users/user.entity'
 import { ApproveOrderDTO, CreateNewOrderDTO, GetOrdersDTO } from './dtos'
 import { PaymentsConnector } from 'src/payments/payments.connector'
 import { FondyCurrency } from 'src/types/fondy/types'
-import { ReportType } from 'src/report-type/report-type.entity'
+import {
+  ReportType,
+  translateReportType,
+} from 'src/report-type/report-type.entity'
 import { Payment, PaymentState } from 'src/payments/payment.entity'
 import { FilesService } from 'src/files/files.service'
 import { PaginationOptionsDTO, Pagination } from 'src/pagination/pagination'
 import { FileDTO } from 'src/files/types'
 import { FileEntity } from 'src/files/file.entity'
-import { FondyCreateCheckoutResultDTO } from 'src/payments/fondy/dtos'
 import { SendMessageDTO } from 'src/chat/dtos'
 import { ChatService } from 'src/chat/chat.service'
 import { MAX_ORDER_FILES_LENGTH } from 'src/files/validations'
 import { OrderFile } from './order-file.entity'
+import { TranslatableRequestDTO } from 'src/translations/dtos'
+import { FondyCreateCheckoutResultDTO } from 'src/payments/fondy/dtos'
 
 @Injectable()
 export class OrdersService {
@@ -44,13 +51,8 @@ export class OrdersService {
     creator: IUser,
   ): Promise<FondyCreateCheckoutResultDTO> {
     const [deliveryType, reportType] = await Promise.all([
-      this.deliveryTypeRepository.findOneBy({
-        id: newOrder.deliveryType,
-      }),
-
-      this.reportTypeRepository.findOneBy({
-        id: newOrder.reportType,
-      }),
+      this.getDeliveryType(newOrder.deliveryType, newOrder),
+      this.getReportType(newOrder.reportType, newOrder),
     ])
 
     if (!deliveryType || !reportType) {
@@ -59,10 +61,12 @@ export class OrdersService {
 
     const amount = reportType.price + deliveryType.price
 
+    const description = deliveryType.name + ' & ' + reportType.name
+
     const { payment, checkout } = await this.paymentsConnector.create({
       amount: amount,
-      currency: FondyCurrency.UAH,
-      desc: deliveryType.name,
+      currency: FondyCurrency.USD,
+      desc: description,
       email: creator.email,
     })
 
@@ -72,11 +76,14 @@ export class OrdersService {
       sign: newOrder.sign,
       state: OrderState.InModeration,
       user: creator,
+      deliveryTypePrice: deliveryType.price,
+      reportTypePrice: reportType.price,
       payment,
     })
 
     try {
       await this.orderRepository.save(order)
+
       return checkout
     } catch (e) {
       throw new InternalServerErrorException()
@@ -103,8 +110,12 @@ export class OrdersService {
         take: getOrdersDto.limit,
         skip: getOrdersDto.page * getOrdersDto.limit,
         relations: {
-          deliveryType: true,
-          reportType: true,
+          deliveryType: {
+            translations: true,
+          },
+          reportType: {
+            translations: true,
+          },
           files: {
             file: {
               owners: true,
@@ -113,16 +124,29 @@ export class OrdersService {
         },
       })
 
-      results.forEach((x) => {
-        if (x.files.length) {
-          x.files = x.files.filter(
-            (y) => y.file.owners.findIndex((z) => z.id === user.id) !== -1,
-          )
+      const translatedOrders: TranslatedOrder[] = results.map((x) => {
+        const { deliveryType, reportType, ...rest } = x
+
+        const files = x.files.filter(
+          (y) => y.file.owners.findIndex((z) => z.id === user.id) !== -1,
+        )
+
+        return {
+          ...rest,
+          files,
+          reportType: translateReportType(
+            reportType,
+            getOrdersDto.languageCode,
+          ),
+          deliveryType: translateDeliveryType(
+            deliveryType,
+            getOrdersDto.languageCode,
+          ),
         }
       })
 
-      return new Pagination<IOrder>({
-        results,
+      return new Pagination<TranslatedOrder>({
+        results: translatedOrders,
         total: count,
       })
     } catch (e) {
@@ -305,5 +329,56 @@ export class OrdersService {
     })
 
     return orderExists
+  }
+
+  async getDeliveryTypes(translatableRequestDto: TranslatableRequestDTO) {
+    const deliveryTypes = await this.deliveryTypeRepository.find({
+      relations: { translations: true },
+    })
+
+    return deliveryTypes.map((x) =>
+      translateDeliveryType(x, translatableRequestDto.languageCode),
+    )
+  }
+
+  async getDeliveryType(
+    id: DeliveryType['id'],
+    translatableRequestDto: TranslatableRequestDTO,
+  ) {
+    const deliveryType = await this.deliveryTypeRepository.findOne({
+      where: { id },
+      relations: { translations: true },
+    })
+
+    return translateDeliveryType(
+      deliveryType,
+      translatableRequestDto.languageCode,
+    )
+  }
+
+  async getReportTypes(translatableRequestDto: TranslatableRequestDTO) {
+    const reportTypes = await this.reportTypeRepository.find({
+      relations: {
+        translations: true,
+      },
+    })
+
+    return reportTypes.map((x) =>
+      translateReportType(x, translatableRequestDto.languageCode),
+    )
+  }
+
+  async getReportType(
+    id: ReportType['id'],
+    translatableRequestDto: TranslatableRequestDTO,
+  ) {
+    const reportType = await this.reportTypeRepository.findOne({
+      where: { id },
+      relations: {
+        translations: true,
+      },
+    })
+
+    return translateReportType(reportType, translatableRequestDto.languageCode)
   }
 }

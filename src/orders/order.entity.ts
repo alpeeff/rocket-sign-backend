@@ -1,7 +1,13 @@
 import { Exclude, instanceToPlain } from 'class-transformer'
-import { DeliveryType } from 'src/delivery-type/delivery-type.entity'
+import {
+  DeliveryType,
+  TranslatedDeliveryType,
+} from 'src/delivery-type/delivery-type.entity'
 import { Payment } from 'src/payments/payment.entity'
-import { ReportType } from 'src/report-type/report-type.entity'
+import {
+  ReportType,
+  TranslatedReportType,
+} from 'src/report-type/report-type.entity'
 import { IUser, User } from 'src/users/user.entity'
 import {
   Column,
@@ -35,11 +41,19 @@ export interface IOrder {
   reportType: ReportType
   deliveryType: DeliveryType
   sign: string
+  deliveryTypePrice: number
+  reportTypePrice: number
   payment: Payment
   files: OrderFile[]
   published: boolean
   createdAt: Date
   completedAt: Date
+}
+
+export interface TranslatedOrder
+  extends Omit<IOrder, 'reportType' | 'deliveryType'> {
+  reportType: TranslatedReportType
+  deliveryType: TranslatedDeliveryType
 }
 
 @Entity()
@@ -84,6 +98,12 @@ export class Order implements IOrder {
 
   @Column({ name: 'completed_at', nullable: true })
   completedAt: Date
+
+  @Column()
+  deliveryTypePrice: number
+
+  @Column()
+  reportTypePrice: number
 
   toJSON() {
     return instanceToPlain(this)

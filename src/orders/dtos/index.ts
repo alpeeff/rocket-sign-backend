@@ -1,4 +1,4 @@
-import { PaginationOptionsDTO } from 'src/pagination/pagination'
+import { TranslatablePaginationOptionsDTO } from 'src/pagination/pagination'
 import { OrderState } from '../order.entity'
 import {
   IsBoolean,
@@ -8,8 +8,9 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator'
+import { TranslatableRequestDTO } from 'src/translations/dtos'
 
-export class CreateNewOrderDTO {
+export class CreateNewOrderDTO extends TranslatableRequestDTO {
   @IsString()
   sign: string
 
@@ -25,7 +26,7 @@ export class TakeOrderInProgressDTO {
   orderId: string
 }
 
-export class GetOrdersDTO extends PaginationOptionsDTO {
+export class GetOrdersDTO extends TranslatablePaginationOptionsDTO {
   @IsEnum(OrderState)
   @IsOptional()
   state?: OrderState

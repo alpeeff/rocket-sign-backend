@@ -6,8 +6,14 @@ import { AuthModule } from './auth/auth.module'
 import { User } from './users/user.entity'
 import { ConfigService } from './config/config.service'
 import { Order } from './orders/order.entity'
-import { DeliveryType } from './delivery-type/delivery-type.entity'
-import { ReportType } from './report-type/report-type.entity'
+import {
+  DeliveryType,
+  DeliveryTypeTranslation,
+} from './delivery-type/delivery-type.entity'
+import {
+  ReportType,
+  ReportTypeTranslation,
+} from './report-type/report-type.entity'
 import { Payment } from './payments/payment.entity'
 import { UsersModule } from './users/users.module'
 import { FileEntity } from './files/file.entity'
@@ -35,7 +41,9 @@ import { OrderFile } from './orders/order-file.entity'
           OrderFile,
           Payment,
           DeliveryType,
+          DeliveryTypeTranslation,
           ReportType,
+          ReportTypeTranslation,
           FileEntity,
           ChatMessage,
         ],

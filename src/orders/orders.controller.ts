@@ -12,8 +12,8 @@ import {
 } from '@nestjs/common'
 import { OrdersService } from './orders.service'
 import { Request } from 'express'
-import { IOrder, Order } from './order.entity'
-import { Action, CaslAbilityFactory } from 'src/casl/casl-ability.factory'
+import { IOrder, Order, TranslatedOrder } from './order.entity'
+import { Action } from 'src/casl/casl-ability.factory'
 import { ApproveOrderDTO, CreateNewOrderDTO, GetOrdersDTO } from './dtos'
 import { FilesInterceptor } from '@nestjs/platform-express'
 import { AuthGuard } from 'src/auth/guards/auth.guard'
@@ -28,16 +28,16 @@ import { FilesGuard } from 'src/files/files.guard'
 import { FileParam } from 'src/files/files.decorator'
 import { FileEntity } from 'src/files/file.entity'
 import { FileDTO } from 'src/files/types'
-import { FondyCheckoutIntermediateSuccessResponseDTO } from 'cloudipsp-node-js-sdk'
 import { SendMessageDTO } from 'src/chat/dtos'
 import { PaginationTransformQueryPipe } from 'src/pagination/pagination.pipe'
+import { TranslatableRequestDTO } from 'src/translations/dtos'
+import { ResponseDataDTO } from 'src/types/response'
+import { TranslatedReportType } from 'src/report-type/report-type.entity'
+import { TranslatedDeliveryType } from 'src/delivery-type/delivery-type.entity'
 
 @Controller('orders')
 export class OrdersController {
-  constructor(
-    private ordersService: OrdersService,
-    private casl: CaslAbilityFactory,
-  ) {}
+  constructor(private ordersService: OrdersService) {}
 
   /**
    * @description Retrieves user's paginated orders
@@ -53,7 +53,7 @@ export class OrdersController {
     @Query(new PaginationTransformQueryPipe())
     getOrdersDto: GetOrdersDTO,
     @Req() req: Request,
-  ): Promise<Pagination<IOrder>> {
+  ): Promise<Pagination<TranslatedOrder>> {
     return await this.ordersService.get(getOrdersDto, req.user)
   }
 
@@ -70,12 +70,11 @@ export class OrdersController {
   async create(
     @Body(new ValidationPipe()) createNewOrderDto: CreateNewOrderDTO,
     @Req() req: Request,
-  ): Promise<FondyCheckoutIntermediateSuccessResponseDTO> {
+  ) {
     const { checkout } = await this.ordersService.createNewOrder(
       createNewOrderDto,
       req.user,
     )
-
     return checkout
   }
 
@@ -219,5 +218,25 @@ export class OrdersController {
     @Req() req: Request,
   ) {
     await this.ordersService.appeal(req.user, order, sendMessageDto)
+  }
+
+  @Get('/delivery-types')
+  @AuthGuard()
+  async getDeliveryTypes(
+    @Query(new ValidationPipe()) translatableRequestDto: TranslatableRequestDTO,
+  ): Promise<ResponseDataDTO<TranslatedDeliveryType[]>> {
+    return {
+      data: await this.ordersService.getDeliveryTypes(translatableRequestDto),
+    }
+  }
+
+  @Get('/report-types')
+  @AuthGuard()
+  async getReportTypes(
+    @Query(new ValidationPipe()) translatableRequestDto: TranslatableRequestDTO,
+  ): Promise<ResponseDataDTO<TranslatedReportType[]>> {
+    return {
+      data: await this.ordersService.getReportTypes(translatableRequestDto),
+    }
   }
 }

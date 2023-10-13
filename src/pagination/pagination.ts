@@ -1,6 +1,15 @@
 import { IsInt } from 'class-validator'
+import { TranslatableRequestDTO } from 'src/translations/dtos'
 
 export class PaginationOptionsDTO {
+  @IsInt()
+  limit: number
+
+  @IsInt()
+  page: number
+}
+
+export class TranslatablePaginationOptionsDTO extends TranslatableRequestDTO {
   @IsInt()
   limit: number
 
